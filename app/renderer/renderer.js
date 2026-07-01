@@ -1,5 +1,6 @@
 const list = document.getElementById("list");
 const emptyState = document.getElementById("empty");
+const markAllBtn = document.getElementById("mark-all");
 
 const SEVERITIES = new Set(["info", "success", "warning", "alert"]);
 
@@ -19,7 +20,9 @@ function relTime(iso) {
 function render(record) {
   const sev = SEVERITIES.has(record.severity) ? record.severity : "info";
   const el = document.createElement("article");
-  el.className = `msg sev-${sev}`;
+  el.className = `msg sev-${sev}${record.read ? " read" : ""}`;
+  el.dataset.id = record.id || "";
+  if (!record.read) el.title = "Click to mark as read";
 
   const head = document.createElement("div");
   head.className = "msg-head";
@@ -52,14 +55,27 @@ function render(record) {
   return el;
 }
 
+function updateMarkAll() {
+  const anyUnread = list.querySelector(".msg:not(.read)") !== null;
+  markAllBtn.disabled = !anyUnread;
+}
+
 function refreshEmpty() {
-  const has = list.children.length > 0;
-  emptyState.hidden = has;
+  emptyState.hidden = list.children.length > 0;
+}
+
+function markReadEl(el) {
+  if (el.classList.contains("read")) return;
+  el.classList.add("read");
+  el.removeAttribute("title");
+  window.raccourier.markRead(el.dataset.id);
+  updateMarkAll();
 }
 
 function setAll(records) {
   list.replaceChildren(...records.map(render));
   refreshEmpty();
+  updateMarkAll();
 }
 
 function prepend(record) {
@@ -69,11 +85,28 @@ function prepend(record) {
   list.prepend(el);
   list.scrollTo({ top: 0 });
   refreshEmpty();
+  updateMarkAll();
 }
+
+// Click a notification to mark it read. Links inside still open externally
+// (handled in the main process); the click also marks the message read.
+list.addEventListener("click", (e) => {
+  const el = e.target.closest(".msg");
+  if (el) markReadEl(el);
+});
+
+markAllBtn.addEventListener("click", () => {
+  window.raccourier.markAllRead();
+  list.querySelectorAll(".msg:not(.read)").forEach((el) => {
+    el.classList.add("read");
+    el.removeAttribute("title");
+  });
+  updateMarkAll();
+});
+
+document.getElementById("clear").addEventListener("click", () => window.raccourier.clear());
 
 window.raccourier.onInit((records) => setAll(records)); // records arrive newest-first
 window.raccourier.onMessage((record) => prepend(record));
-
-document.getElementById("clear").addEventListener("click", () => window.raccourier.clear());
 
 window.raccourier.ready();

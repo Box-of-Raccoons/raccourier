@@ -1,6 +1,6 @@
 const path = require("node:path");
 const crypto = require("node:crypto");
-const { app, BrowserWindow, Tray, Menu, Notification, nativeImage } = require("electron");
+const { app, BrowserWindow, Tray, Menu, Notification, nativeImage, shell } = require("electron");
 const { loadConfig } = require("../shared/config");
 const { teaser } = require("../shared/schema");
 const store = require("./store");
@@ -49,6 +49,15 @@ function createWindow() {
       win.webContents.reloadIgnoringCache();
       e.preventDefault();
     }
+  });
+  // Open markdown links in the external browser; never navigate the window away.
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    if (/^https?:/.test(url)) shell.openExternal(url);
+    return { action: "deny" };
+  });
+  win.webContents.on("will-navigate", (e, url) => {
+    e.preventDefault();
+    if (/^https?:/.test(url)) shell.openExternal(url);
   });
   win.loadFile(path.join(__dirname, "renderer", "index.html"));
 }
@@ -138,6 +147,8 @@ app.whenReady().then(() => {
     store.save([]);
     e.sender.send("init", []);
   });
+  ipcMain.on("mark-read", (_e, id) => store.markRead(id));
+  ipcMain.on("mark-all-read", () => store.markAllRead());
 });
 
 // Keep running in the tray when the window is closed.

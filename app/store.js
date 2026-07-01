@@ -32,4 +32,21 @@ function add(record, now) {
   return next;
 }
 
-module.exports = { load, save, prune, add };
+function markRead(id) {
+  const records = load();
+  const r = records.find((x) => x.id === id);
+  if (r) {
+    r.read = true;
+    save(records);
+  }
+  return records;
+}
+
+function markAllRead() {
+  const records = load();
+  for (const r of records) r.read = true;
+  save(records);
+  return records;
+}
+
+module.exports = { load, save, prune, add, markRead, markAllRead };
