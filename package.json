@@ -4,7 +4,7 @@
   "description": "Desktop notifier that Claude can push mail-triage summaries and alerts to.",
   "main": "app/main.js",
   "scripts": {
-    "start": "electron app",
+    "start": "electron .",
     "mcp": "node mcp/server.js",
     "test": "vitest run",
     "dist": "electron-builder"
