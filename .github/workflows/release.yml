@@ -1,7 +1,10 @@
 name: Release
 
-# Builds the Windows installer and publishes it to a GitHub Release.
-# Trigger by pushing a version tag, e.g. `git tag v1.0.0 && git push origin v1.0.0`.
+# Builds the installers and publishes them to a GitHub Release.
+# - Push a version tag (e.g. `git tag v1.0.0 && git push origin v1.0.0`) to build
+#   AND publish to the matching release.
+# - Run manually (workflow_dispatch) to build both platforms and upload the
+#   installers as run artifacts WITHOUT publishing — useful for verifying a branch.
 on:
   push:
     tags:
@@ -13,7 +16,15 @@ permissions:
 
 jobs:
   release:
-    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            build_args: "--win"
+          - os: macos-latest
+            build_args: "--mac"
+    runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -30,7 +41,20 @@ jobs:
       - name: Run tests
         run: npm test
 
-      - name: Build and publish installer
-        run: npx electron-builder --win --publish always
+      - name: Build installer (${{ matrix.os }})
+        run: npx electron-builder ${{ matrix.build_args }} --publish ${{ github.event_name == 'push' && 'always' || 'never' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # macOS signing/notarization is a follow-up; build unsigned for now.
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      - name: Upload build artifacts (manual runs only)
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: raccourier-${{ matrix.os }}
+          path: |
+            dist/*.exe
+            dist/*.dmg
+            dist/*.yml
+          if-no-files-found: ignore

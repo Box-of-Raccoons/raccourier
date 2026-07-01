@@ -28,7 +28,7 @@
   "build": {
     "appId": "com.raccourier.app",
     "productName": "Raccourier",
-    "files": ["app/**/*", "mcp/**/*", "shared/**/*", "build/icon.png", "package.json"],
+    "files": ["app/**/*", "mcp/**/*", "shared/**/*", "build/icon.png", "build/trayTemplate.png", "package.json"],
     "publish": [
       {
         "provider": "github",
@@ -47,6 +47,10 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "Raccourier"
+    },
+    "mac": {
+      "target": ["dmg"],
+      "category": "public.app-category.productivity"
     }
   }
 }

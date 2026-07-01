@@ -15,10 +15,25 @@ let quitting = false;
 const cfg = loadConfig();
 
 const iconPath = path.join(__dirname, "..", "build", "icon.png");
+const isMac = process.platform === "darwin";
 
 function getIcon() {
   const img = nativeImage.createFromPath(iconPath);
   return img.isEmpty() ? nativeImage.createEmpty() : img;
+}
+
+// macOS menu-bar icons should be small monochrome "template" images (auto-
+// recolored for light/dark menu bars). Use one if present; otherwise fall back
+// to the colored app icon.
+function getTrayIcon() {
+  if (isMac) {
+    const t = nativeImage.createFromPath(path.join(__dirname, "..", "build", "trayTemplate.png"));
+    if (!t.isEmpty()) {
+      t.setTemplateImage(true);
+      return t;
+    }
+  }
+  return getIcon();
 }
 
 function createWindow() {
@@ -93,6 +108,23 @@ function onNotify(data) {
   return record;
 }
 
+function buildAppMenu() {
+  // Windows: no application menu bar at all. macOS: a minimal menu so Cmd+Q,
+  // copy/paste, and force-reload still work (macOS apps expect an app menu).
+  if (!isMac) return null;
+  return Menu.buildFromTemplate([
+    { role: "appMenu" },
+    { role: "editMenu" },
+    {
+      label: "View",
+      submenu: [
+        { label: "Force Reload", accelerator: "CmdOrCtrl+Shift+R", click: forceReload },
+        { role: "toggleDevTools" },
+      ],
+    },
+  ]);
+}
+
 function buildTrayMenu() {
   return Menu.buildFromTemplate([
     { label: "Open Raccourier", click: showWindow },
@@ -118,15 +150,18 @@ function buildTrayMenu() {
 }
 
 app.whenReady().then(() => {
-  // No File/Edit/View/Window/Help menu bar on the window.
-  Menu.setApplicationMenu(null);
+  // Windows: drop the File/Edit/View/Window/Help bar. macOS: minimal menu.
+  Menu.setApplicationMenu(buildAppMenu());
+
+  // macOS: menu-bar-only app — no Dock icon.
+  if (isMac && app.dock) app.dock.hide();
 
   // Prune stale history on startup.
   store.save(store.prune(store.load(), Date.now()));
 
   createWindow();
 
-  tray = new Tray(getIcon());
+  tray = new Tray(getTrayIcon());
   tray.setToolTip("Raccourier");
   tray.setContextMenu(buildTrayMenu());
   tray.on("click", showWindow);
