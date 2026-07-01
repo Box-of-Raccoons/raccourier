@@ -32,7 +32,7 @@ function launchTray() {
     args = [];
   } else {
     cmd = require("electron"); // string path to the electron binary under node
-    args = [path.join(__dirname, "..", "app")];
+    args = [path.join(__dirname, "..")]; // repo root resolves main (app/main.js) → tray
   }
   spawn(cmd, args, { detached: true, stdio: "ignore", env }).unref();
 }
