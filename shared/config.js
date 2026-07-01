@@ -3,10 +3,21 @@ const os = require("node:os");
 const path = require("node:path");
 const crypto = require("node:crypto");
 
-function configDir() {
-  if (process.env.RACCOURIER_DIR) return process.env.RACCOURIER_DIR;
-  const base = process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming");
+function resolveConfigDir(platform, env, home) {
+  if (env.RACCOURIER_DIR) return env.RACCOURIER_DIR;
+  if (platform === "darwin") {
+    return path.join(home, "Library", "Application Support", "Raccourier");
+  }
+  if (platform === "win32") {
+    const base = env.APPDATA || path.join(home, "AppData", "Roaming");
+    return path.join(base, "Raccourier");
+  }
+  const base = env.XDG_CONFIG_HOME || path.join(home, ".config");
   return path.join(base, "Raccourier");
+}
+
+function configDir() {
+  return resolveConfigDir(process.platform, process.env, os.homedir());
 }
 
 function historyPath() {
@@ -28,4 +39,4 @@ function loadConfig() {
   return cfg;
 }
 
-module.exports = { configDir, historyPath, loadConfig };
+module.exports = { configDir, resolveConfigDir, historyPath, loadConfig };

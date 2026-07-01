@@ -1,5 +1,6 @@
 const path = require("node:path");
 const { spawn } = require("node:child_process");
+const { isPackagedExec } = require("../shared/platform");
 
 function baseUrl(cfg) {
   return `http://127.0.0.1:${cfg.port}`;
@@ -23,7 +24,7 @@ async function healthy(cfg, timeoutMs = 500) {
 }
 
 function launchTray() {
-  const isPackaged = /raccourier/i.test(path.basename(process.execPath));
+  const isPackaged = isPackagedExec(process.execPath, process.platform);
   const env = { ...process.env };
   delete env.ELECTRON_RUN_AS_NODE;
   let cmd, args;

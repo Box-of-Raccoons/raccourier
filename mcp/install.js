@@ -1,6 +1,7 @@
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
+const { isPackagedExec } = require("../shared/platform");
 
 // Config file per target. Each returns the absolute path to the JSON file
 // whose top-level `mcpServers` map we merge into.
@@ -14,7 +15,7 @@ const TARGETS = {
 // The MCP server entry Claude launches. Packaged: the installed Raccourier.exe
 // run headless with --mcp. Dev: the current node binary running mcp/server.js.
 function serverEntry() {
-  const isPackaged = /raccourier\.exe$/i.test(path.basename(process.execPath));
+  const isPackaged = isPackagedExec(process.execPath, process.platform);
   return isPackaged
     ? { type: "stdio", command: process.execPath, args: ["--mcp"], env: {} }
     : { type: "stdio", command: process.execPath, args: [path.resolve(__dirname, "server.js")], env: {} };
