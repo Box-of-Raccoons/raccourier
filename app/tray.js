@@ -28,19 +28,33 @@ function createWindow() {
     show: false,
     title: "Raccourier",
     icon: getIcon(),
+    autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
       nodeIntegration: false,
     },
   });
+  win.removeMenu();
   win.on("close", (e) => {
     if (!quitting) {
       e.preventDefault();
       win.hide();
     }
   });
+  // Keep a force-reload even though the menu bar is gone.
+  win.webContents.on("before-input-event", (e, input) => {
+    const key = (input.key || "").toLowerCase();
+    if (input.type === "keyDown" && ((input.control && input.shift && key === "r") || key === "f5")) {
+      win.webContents.reloadIgnoringCache();
+      e.preventDefault();
+    }
+  });
   win.loadFile(path.join(__dirname, "renderer", "index.html"));
+}
+
+function forceReload() {
+  if (win && !win.isDestroyed()) win.webContents.reloadIgnoringCache();
 }
 
 function showWindow() {
@@ -73,6 +87,8 @@ function onNotify(data) {
 function buildTrayMenu() {
   return Menu.buildFromTemplate([
     { label: "Open Raccourier", click: showWindow },
+    { label: "Force reload", accelerator: "CmdOrCtrl+Shift+R", click: forceReload },
+    { type: "separator" },
     {
       label: "Clear history",
       click: () => {
@@ -93,6 +109,9 @@ function buildTrayMenu() {
 }
 
 app.whenReady().then(() => {
+  // No File/Edit/View/Window/Help menu bar on the window.
+  Menu.setApplicationMenu(null);
+
   // Prune stale history on startup.
   store.save(store.prune(store.load(), Date.now()));
 
