@@ -1,8 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 let server, base;
 const secret = "s3cr3t";
 let db;
+let dir;
 
 async function call(path, opts = {}) {
   const headers = { "content-type": "application/json", ...(opts.headers || {}) };
@@ -11,6 +15,9 @@ async function call(path, opts = {}) {
 }
 
 beforeEach(async () => {
+  // Isolate the read-state.json overlay (used by /messages + /clear) to a temp dir.
+  dir = mkdtempSync(join(tmpdir(), "raccourier-"));
+  process.env.RACCOURIER_DIR = dir;
   db = [];
   const store = {
     load: () => db,
@@ -26,7 +33,11 @@ beforeEach(async () => {
   await new Promise((r) => server.listen(0, "127.0.0.1", r));
   base = `http://127.0.0.1:${server.address().port}`;
 });
-afterEach(() => new Promise((r) => server.close(r)));
+afterEach(async () => {
+  await new Promise((r) => server.close(r));
+  delete process.env.RACCOURIER_DIR;
+  rmSync(dir, { recursive: true, force: true });
+});
 
 const auth = { headers: { "x-raccourier-secret": secret } };
 
@@ -62,10 +73,21 @@ describe("httpServer", () => {
     const all = await call("/messages", auth);
     expect(all.body.messages.map((m) => m.title)).toEqual(["c", "a"]);
   });
-  it("clear empties the store and reports the count", async () => {
+  // Clear is now overlay-only: it hides ids in the read-state overlay and must
+  // NOT wipe the append-log (on the host, the store is the cross-machine archive).
+  it("clear hides visible messages via the overlay without wiping the store", async () => {
     await call("/notify", { ...auth, method: "POST", body: JSON.stringify({ title: "a", body: "b" }) });
     const { body } = await call("/clear", { ...auth, method: "POST" });
     expect(body.cleared).toBe(1);
-    expect(db).toHaveLength(0);
+    expect(db).toHaveLength(1); // store (history.json analogue) left intact
+    const after = await call("/messages", auth);
+    expect(after.body.messages).toEqual([]); // hidden from the view
+  });
+
+  it("a second clear reports zero newly-hidden ids", async () => {
+    await call("/notify", { ...auth, method: "POST", body: JSON.stringify({ title: "a", body: "b" }) });
+    await call("/clear", { ...auth, method: "POST" });
+    const { body } = await call("/clear", { ...auth, method: "POST" });
+    expect(body.cleared).toBe(0);
   });
 });

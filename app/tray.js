@@ -1,10 +1,18 @@
 const path = require("node:path");
+const os = require("node:os");
 const crypto = require("node:crypto");
 const { app, BrowserWindow, Tray, Menu, Notification, nativeImage, shell } = require("electron");
 const { loadConfig } = require("../shared/config");
-const { teaser } = require("../shared/schema");
+const { teaser, buildRecord } = require("../shared/schema");
 const store = require("./store");
+const readState = require("./readState");
+const { view } = require("./mergeView");
 const { createServer } = require("./httpServer");
+
+// Phase 1: host source is stubbed empty; Phase 3 wires in polled host records.
+function currentView() {
+  return view(store.load(), [], readState.load());
+}
 
 const APP_ID = "com.raccourier.app";
 app.setAppUserModelId(APP_ID);
@@ -79,11 +87,13 @@ function fireToast(record) {
 }
 
 function onNotify(data) {
-  const record = {
+  // Origin fallback chain: payload origin -> config.json origin -> hostname.
+  const record = buildRecord(data, {
     id: crypto.randomUUID(),
     receivedAt: new Date().toISOString(),
-    ...data,
-  };
+    configOrigin: cfg.origin,
+    hostname: os.hostname(),
+  });
   store.add(record, Date.now());
   fireToast(record);
   if (data.popup || data.severity === "alert") showWindow();
@@ -101,7 +111,8 @@ function buildTrayMenu() {
     {
       label: "Clear history",
       click: () => {
-        store.save([]);
+        // Overlay-only: hide the currently-visible ids; never wipe the append-log.
+        readState.clear(currentView().map((r) => r.id), Date.now());
         if (win && !win.isDestroyed()) win.webContents.send("init", []);
       },
     },
@@ -141,14 +152,15 @@ app.whenReady().then(() => {
 
   const { ipcMain } = require("electron");
   ipcMain.on("ready", (e) => {
-    e.sender.send("init", store.load().slice().reverse());
+    e.sender.send("init", currentView().slice().reverse());
   });
   ipcMain.on("clear", (e) => {
-    store.save([]);
+    // Overlay-only: hide the currently-visible ids; never wipe the append-log.
+    readState.clear(currentView().map((r) => r.id), Date.now());
     e.sender.send("init", []);
   });
-  ipcMain.on("mark-read", (_e, id) => store.markRead(id));
-  ipcMain.on("mark-all-read", () => store.markAllRead());
+  ipcMain.on("mark-read", (_e, id) => readState.markRead(id, Date.now()));
+  ipcMain.on("mark-all-read", () => readState.markAllRead(currentView().map((r) => r.id), Date.now()));
 });
 
 // Keep running in the tray when the window is closed.

@@ -19,7 +19,15 @@ function readJson(req) {
   });
 }
 
-function createServer({ secret, version, store, onNotify }) {
+function createServer({
+  secret,
+  version,
+  store,
+  onNotify,
+  readState = require("./readState"),
+  view = require("./mergeView").view,
+  getHostRecords = () => [], // Phase 1 stub; Phase 3 supplies polled host records.
+}) {
   return http.createServer(async (req, res) => {
     const send = (code, obj) => {
       res.writeHead(code, { "content-type": "application/json" });
@@ -40,15 +48,18 @@ function createServer({ secret, version, store, onNotify }) {
       if (req.method === "GET" && url.pathname === "/messages") {
         const limit = Number(url.searchParams.get("limit")) || undefined;
         const source = url.searchParams.get("source") || undefined;
-        let msgs = store.load().slice().reverse();
+        let msgs = view(store.load(), getHostRecords(), readState.load()).slice().reverse();
         if (source) msgs = msgs.filter((m) => m.source === source);
         if (limit) msgs = msgs.slice(0, limit);
         return send(200, { messages: msgs });
       }
       if (req.method === "POST" && url.pathname === "/clear") {
-        const cleared = store.load().length;
-        store.save([]);
-        return send(200, { cleared });
+        // Overlay-only: hide the currently-visible ids; never wipe the append-log
+        // (on the host, history.json is the cross-machine archive). view() already
+        // excludes previously-cleared ids, so every visible id is newly hidden.
+        const ids = view(store.load(), getHostRecords(), readState.load()).map((r) => r.id);
+        readState.clear(ids, Date.now());
+        return send(200, { cleared: ids.length });
       }
       return send(404, { error: "not found" });
     } catch (e) {

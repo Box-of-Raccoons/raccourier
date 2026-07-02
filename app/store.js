@@ -32,21 +32,7 @@ function add(record, now) {
   return next;
 }
 
-function markRead(id) {
-  const records = load();
-  const r = records.find((x) => x.id === id);
-  if (r) {
-    r.read = true;
-    save(records);
-  }
-  return records;
-}
-
-function markAllRead() {
-  const records = load();
-  for (const r of records) r.read = true;
-  save(records);
-  return records;
-}
-
-module.exports = { load, save, prune, add, markRead, markAllRead };
+// history.json is a pure, immutable append-log. Read-state lives in the
+// read-state.json overlay (app/readState.js); records are never mutated here.
+// Old records carrying a legacy `read: true` field are left as-is and ignored.
+module.exports = { load, save, prune, add };
