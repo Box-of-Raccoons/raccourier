@@ -5,3 +5,7 @@ dist/
 .superpowers/
 .playwright-mcp/
 /raccourier-*.png
+
+# Local-only: personal planning docs + one-off icon-gen cruft (scrubbed from history pre-OSS)
+/docs/
+/build/icon-candidates/

@@ -1,6 +1,6 @@
 {
   "name": "raccourier",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Desktop notifier that Claude can push mail-triage summaries and alerts to.",
   "repository": {
     "type": "git",
