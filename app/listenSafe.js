@@ -41,4 +41,15 @@ async function listenWithFallback(server, port, bind, onFallback = () => {}) {
   return { bound: null, error: second.err };
 }
 
-module.exports = { listenWithFallback };
+// Decide which host the tray's HTTP server listens on. A configured LAN feed
+// (cfg.bind set to a real interface, not loopback) must serve BOTH the LAN — so
+// spokes can reach the host — AND 127.0.0.1 — so the local MCP path works, since
+// bridge.js always talks to 127.0.0.1. Binding a specific IP EXCLUDES loopback,
+// which silently breaks notify/list/clear on the host. So when a LAN feed is
+// wanted we listen on all interfaces (0.0.0.0); the secret guards the port. No
+// LAN feed configured → loopback only.
+function resolveBindHost(cfg) {
+  return cfg && cfg.bind && cfg.bind !== "127.0.0.1" ? "0.0.0.0" : "127.0.0.1";
+}
+
+module.exports = { listenWithFallback, resolveBindHost };
