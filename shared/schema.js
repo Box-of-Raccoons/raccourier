@@ -7,6 +7,7 @@ const notifyShape = {
   source: z.string().optional(),
   origin: z.string().optional(),
   popup: z.boolean().default(true),
+  push: z.boolean().optional(),
 };
 
 const notifySchema = z.object(notifyShape);

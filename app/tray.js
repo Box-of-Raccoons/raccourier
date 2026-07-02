@@ -8,6 +8,7 @@ const store = require("./store");
 const readState = require("./readState");
 const { view } = require("./mergeView");
 const { createServer } = require("./httpServer");
+const { sendPushover } = require("./pushover");
 
 // Phase 1: host source is stubbed empty; Phase 3 wires in polled host records.
 function currentView() {
@@ -95,6 +96,11 @@ function onNotify(data) {
     hostname: os.hostname(),
   });
   store.add(record, Date.now());
+  // Pushover: fire-and-forget from the originating machine only (never from /ingest).
+  // Condition: alert severity OR explicit per-message push:true, AND creds configured.
+  if ((record.severity === "alert" || data.push === true) && cfg.pushover) {
+    sendPushover(record, cfg.pushover); // intentionally not awaited
+  }
   fireToast(record);
   if (data.popup || data.severity === "alert") showWindow();
   if (win && !win.isDestroyed() && win.webContents) {
