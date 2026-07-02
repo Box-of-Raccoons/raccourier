@@ -5,10 +5,38 @@ const notifyShape = {
   body: z.string().min(1),
   severity: z.enum(["info", "success", "warning", "alert"]).default("info"),
   source: z.string().optional(),
+  origin: z.string().optional(),
   popup: z.boolean().default(true),
+  push: z.boolean().optional(),
 };
 
 const notifySchema = z.object(notifyShape);
+
+// Ingest schema (Phase 3 host POST /ingest): a FULL pre-minted record forwarded
+// verbatim from a spoke. Same payload shape as notify, but id/receivedAt/origin
+// are REQUIRED — the originating machine already minted them, and the host must
+// append the record as-is (re-minting via /notify would break union-by-id dedupe).
+const ingestSchema = z.object({
+  ...notifyShape,
+  id: z.string().min(1),
+  receivedAt: z.string().min(1),
+  origin: z.string().min(1),
+});
+
+// Origin rides the notify payload: the MCP server stamps its per-registration
+// RACCOURIER_ORIGIN here (env wins over any arg-supplied origin) before POSTing.
+function applyOrigin(args, origin) {
+  return origin ? { ...args, origin } : args;
+}
+
+// Pure record builder used by the tray's onNotify. The origin fallback chain is
+// payload origin -> config.json origin -> os.hostname(); ids/timestamps and the
+// hostname are injected so this stays testable without Electron. Guarantees a
+// non-empty origin as long as hostname is non-empty.
+function buildRecord(data, { id, receivedAt, configOrigin, hostname }) {
+  const origin = data.origin || configOrigin || hostname;
+  return { id, receivedAt, ...data, origin };
+}
 
 function teaser(body, max = 140) {
   const line = String(body)
@@ -19,4 +47,4 @@ function teaser(body, max = 140) {
   return line.length > max ? line.slice(0, max - 1) + "…" : line;
 }
 
-module.exports = { notifyShape, notifySchema, teaser };
+module.exports = { notifyShape, notifySchema, ingestSchema, applyOrigin, buildRecord, teaser };
