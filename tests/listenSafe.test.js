@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import http from "node:http";
-import { listenWithFallback } from "../app/listenSafe.js";
+import { listenWithFallback, resolveBindHost } from "../app/listenSafe.js";
 
 // 192.0.2.x is TEST-NET-1 (RFC 5737): never assigned to a local interface, so
 // binding it reliably produces EADDRNOTAVAIL — the same failure as a wrong
@@ -56,5 +56,24 @@ describe("listenWithFallback", () => {
     expect(result.bound).toBeNull();
     expect(result.error).toBeTruthy();
     expect(server.listening).toBe(false);
+  });
+});
+
+describe("resolveBindHost", () => {
+  it("loopback-only when no bind is configured (spoke)", () => {
+    expect(resolveBindHost({})).toBe("127.0.0.1");
+    expect(resolveBindHost({ bind: "" })).toBe("127.0.0.1");
+    expect(resolveBindHost(undefined)).toBe("127.0.0.1");
+  });
+
+  it("loopback-only when bind is explicitly 127.0.0.1", () => {
+    expect(resolveBindHost({ bind: "127.0.0.1" })).toBe("127.0.0.1");
+  });
+
+  it("all interfaces (0.0.0.0) when a LAN bind is configured — keeps loopback for MCP", () => {
+    // A specific IP would exclude 127.0.0.1 and break the local MCP path; 0.0.0.0
+    // serves both the LAN feed and loopback.
+    expect(resolveBindHost({ bind: "192.168.1.206" })).toBe("0.0.0.0");
+    expect(resolveBindHost({ bind: "0.0.0.0" })).toBe("0.0.0.0");
   });
 });
