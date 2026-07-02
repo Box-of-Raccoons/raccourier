@@ -26,31 +26,44 @@ npm install
 Register it with your local Claude:
 
 ```bash
-# Claude Code
+# Claude Code   (writes ~/.claude.json)
 node mcp/install.js --target claude-code
+
+# Claude Desktop / Cowork   (writes %APPDATA%\Claude\claude_desktop_config.json
+#                            or ~/Library/Application Support/Claude/... on macOS)
+node mcp/install.js --target claude-desktop
 ```
 
-This adds a `raccourier` entry to `~/.claude.json` under `mcpServers`. **Restart
-Claude Code** to load it. Then the tools below are available; the first `notify`
-call auto-starts the tray app.
+Each adds a `raccourier` entry under `mcpServers`, preserving any other servers and
+keys already there. **Fully quit and reopen** the client (Claude Desktop: tray →
+Quit, not just closing the window) to load it. Then the tools below are available;
+the first `notify` call auto-starts the tray app.
 
-> **Claude Cowork:** its MCP config location isn't auto-detected yet. Run
-> `node mcp/install.js --target cowork` to print the exact JSON snippet, then paste
-> it into Cowork's MCP config manually.
+> **Claude Cowork** shares Claude Desktop's config file, so `--target claude-desktop`
+> covers it. If your build stores config elsewhere, run `node mcp/install.js --target
+> cowork` to print the JSON snippet and paste it in manually.
 
-Manual registration snippet (any client):
+Manual registration snippet (any client). Note the **command differs** between
+running from source (Node) and from the packaged app:
 
-```json
-{
-  "mcpServers": {
-    "raccourier": {
-      "type": "stdio",
-      "command": "<path-to-node-or-Raccourier.exe>",
-      "args": ["<path-to>/mcp/server.js"],
-      "env": {}
-    }
-  }
-}
+```jsonc
+// From source — plain Node runs the server:
+{ "mcpServers": { "raccourier": {
+  "type": "stdio",
+  "command": "C:\\Program Files\\nodejs\\node.exe",
+  "args": ["C:\\path\\to\\raccourier\\mcp\\server.js"],
+  "env": {}
+} } }
+
+// From the packaged app — run Raccourier.exe AS Node via ELECTRON_RUN_AS_NODE.
+// A bare `--mcp` here boots the full Electron/Chromium runtime, which never
+// completes the stdio JSON-RPC handshake ("Unexpected end of JSON input").
+{ "mcpServers": { "raccourier": {
+  "type": "stdio",
+  "command": "C:\\Users\\<you>\\AppData\\Local\\Programs\\Raccourier\\Raccourier.exe",
+  "args": ["C:\\Users\\<you>\\AppData\\Local\\Programs\\Raccourier\\resources\\app.asar\\mcp\\server.js"],
+  "env": { "ELECTRON_RUN_AS_NODE": "1" }
+} } }
 ```
 
 ### Packaged installer (to share)
@@ -64,11 +77,15 @@ shortcut (which also makes Windows attribute toasts to "Raccourier"). After inst
 register with:
 
 ```bash
+# Claude Code:
 "C:\Users\<you>\AppData\Local\Programs\Raccourier\Raccourier.exe" --install-mcp --target claude-code
+# Claude Desktop / Cowork:
+"C:\Users\<you>\AppData\Local\Programs\Raccourier\Raccourier.exe" --install-mcp --target claude-desktop
 ```
 
-The installed `Raccourier.exe --mcp` runs the MCP server headlessly (no window); no
-Node needed on the target machine.
+`--install-mcp` writes an entry that runs `Raccourier.exe` as a headless Node process
+(`ELECTRON_RUN_AS_NODE=1`) against the bundled `mcp/server.js` — no separate Node
+install needed on the target machine.
 
 ## Tools
 
