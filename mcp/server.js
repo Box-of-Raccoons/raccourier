@@ -1,6 +1,10 @@
 const { loadConfig } = require("../shared/config");
-const { notifyShape } = require("../shared/schema");
+const { notifyShape, applyOrigin } = require("../shared/schema");
 const { ensureRunning, postNotify, getMessages, clearMessages } = require("./bridge");
+
+// Per-registration label — the tray copies whichever caller's env launched it,
+// so origin must travel per-request in the payload rather than via tray env.
+const ORIGIN = process.env.RACCOURIER_ORIGIN;
 
 async function main() {
   const { z } = require("zod");
@@ -24,7 +28,7 @@ async function main() {
     async (args) => {
       try {
         await ensureRunning(cfg);
-        const result = await postNotify(cfg, args);
+        const result = await postNotify(cfg, applyOrigin(args, ORIGIN));
         return ok(result);
       } catch (e) {
         return fail(`Raccourier could not deliver the notification: ${e.message}`);

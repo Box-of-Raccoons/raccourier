@@ -13,6 +13,10 @@ function historyPath() {
   return path.join(configDir(), "history.json");
 }
 
+function readStatePath() {
+  return path.join(configDir(), "read-state.json");
+}
+
 function loadConfig() {
   const dir = configDir();
   fs.mkdirSync(dir, { recursive: true });
@@ -28,4 +32,4 @@ function loadConfig() {
   return cfg;
 }
 
-module.exports = { configDir, historyPath, loadConfig };
+module.exports = { configDir, historyPath, readStatePath, loadConfig };

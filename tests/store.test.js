@@ -50,25 +50,12 @@ describe("store", () => {
     expect(load().map((r) => r.id)).toEqual(["new"]);
   });
 
-  it("markRead sets read on only the matching record and persists", async () => {
-    const { save, load, markRead } = await import("../app/store.js");
-    save([rec("a", 0), rec("b", 0)]);
-    markRead("b");
-    const byId = Object.fromEntries(load().map((r) => [r.id, !!r.read]));
-    expect(byId).toEqual({ a: false, b: true });
-  });
-
-  it("markRead is a no-op for an unknown id", async () => {
-    const { save, load, markRead } = await import("../app/store.js");
-    save([rec("a", 0)]);
-    markRead("missing");
-    expect(load().every((r) => !r.read)).toBe(true);
-  });
-
-  it("markAllRead sets read on every record and persists", async () => {
-    const { save, load, markAllRead } = await import("../app/store.js");
-    save([rec("a", 0), rec("b", 0)]);
-    markAllRead();
-    expect(load().every((r) => r.read === true)).toBe(true);
+  // Read-state mutation moved out of the store to the read-state.json overlay
+  // (app/readState.js) — see tests/readState.test.js. history.json is now a pure
+  // append-log, so store no longer exposes markRead/markAllRead.
+  it("no longer mutates records for read-state", async () => {
+    const s = await import("../app/store.js");
+    expect(s.markRead).toBeUndefined();
+    expect(s.markAllRead).toBeUndefined();
   });
 });
