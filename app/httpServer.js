@@ -1,5 +1,5 @@
 const http = require("node:http");
-const { notifySchema } = require("../shared/schema");
+const { notifySchema, ingestSchema } = require("../shared/schema");
 
 function readJson(req) {
   return new Promise((resolve, reject) => {
@@ -24,6 +24,10 @@ function createServer({
   version,
   store,
   onNotify,
+  // Phase 3: side-effects hook for POST /ingest (renderer notify + policy-gated
+  // toast). Deliberately NOT onNotify: ingest must not re-mint id/receivedAt,
+  // showWindow, or fire Pushover (the spoke already pushed to the phone directly).
+  onIngest = () => {},
   readState = require("./readState"),
   view = require("./mergeView").view,
   getHostRecords = () => [], // Phase 1 stub; Phase 3 supplies polled host records.
@@ -45,10 +49,30 @@ function createServer({
         const record = onNotify(parsed.data);
         return send(200, { id: record.id, receivedAt: record.receivedAt });
       }
+      if (req.method === "POST" && url.pathname === "/ingest") {
+        // Spoke → host forward: accept a FULL pre-minted record and append it
+        // verbatim (no re-mint, no onNotify side effects). Dedupe by id so a
+        // re-forwarded record can't land twice.
+        const parsed = ingestSchema.safeParse(await readJson(req));
+        if (!parsed.success) return send(400, { error: "invalid", detail: parsed.error.issues });
+        const record = parsed.data;
+        if (store.load().some((r) => r.id === record.id)) {
+          return send(200, { id: record.id, deduped: true });
+        }
+        store.add(record, Date.now());
+        onIngest(record); // renderer notify + policy-gated toast only
+        return send(200, { id: record.id, receivedAt: record.receivedAt });
+      }
       if (req.method === "GET" && url.pathname === "/messages") {
         const limit = Number(url.searchParams.get("limit")) || undefined;
         const source = url.searchParams.get("source") || undefined;
-        let msgs = view(store.load(), getHostRecords(), readState.load()).slice().reverse();
+        // raw=1 is the spoke-sync surface: the bare append-log, no overlay.
+        // The default (overlay-filtered) view would leak this machine's local
+        // clears into every spoke's feed — clear is a per-device view op.
+        const raw = url.searchParams.get("raw");
+        let msgs = raw
+          ? store.load().slice().reverse()
+          : view(store.load(), getHostRecords(), readState.load()).slice().reverse();
         if (source) msgs = msgs.filter((m) => m.source === source);
         if (limit) msgs = msgs.slice(0, limit);
         return send(200, { messages: msgs });

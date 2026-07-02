@@ -12,6 +12,17 @@ const notifyShape = {
 
 const notifySchema = z.object(notifyShape);
 
+// Ingest schema (Phase 3 host POST /ingest): a FULL pre-minted record forwarded
+// verbatim from a spoke. Same payload shape as notify, but id/receivedAt/origin
+// are REQUIRED — the originating machine already minted them, and the host must
+// append the record as-is (re-minting via /notify would break union-by-id dedupe).
+const ingestSchema = z.object({
+  ...notifyShape,
+  id: z.string().min(1),
+  receivedAt: z.string().min(1),
+  origin: z.string().min(1),
+});
+
 // Origin rides the notify payload: the MCP server stamps its per-registration
 // RACCOURIER_ORIGIN here (env wins over any arg-supplied origin) before POSTing.
 function applyOrigin(args, origin) {
@@ -36,4 +47,4 @@ function teaser(body, max = 140) {
   return line.length > max ? line.slice(0, max - 1) + "…" : line;
 }
 
-module.exports = { notifyShape, notifySchema, applyOrigin, buildRecord, teaser };
+module.exports = { notifyShape, notifySchema, ingestSchema, applyOrigin, buildRecord, teaser };

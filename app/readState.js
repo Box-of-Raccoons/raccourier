@@ -11,19 +11,29 @@ const MAX = 500;
 const MAX_AGE_MS = 14 * 24 * 60 * 60 * 1000;
 
 function empty() {
-  return { read: [], cleared: [] };
+  return { read: [], cleared: [], seen: [] };
 }
 
-function load() {
+// Full on-disk state incl. the Phase 3 `seen` toast-dedupe set. Backward-compat:
+// a read-state.json written before `seen` existed loads as seen: []. Used
+// internally so mutating writes preserve seen; the public load() below keeps its
+// {read, cleared} shape (the render/merge overlay contract) unchanged.
+function loadFull() {
   try {
     const data = JSON.parse(fs.readFileSync(readStatePath(), "utf8"));
     return {
       read: Array.isArray(data.read) ? data.read : [],
       cleared: Array.isArray(data.cleared) ? data.cleared : [],
+      seen: Array.isArray(data.seen) ? data.seen : [],
     };
   } catch {
     return empty();
   }
+}
+
+function load() {
+  const { read, cleared } = loadFull();
+  return { read, cleared };
 }
 
 function pruneList(list, cutoff) {
@@ -37,6 +47,7 @@ function prune(state, now) {
   return {
     read: pruneList(state.read, cutoff),
     cleared: pruneList(state.cleared, cutoff),
+    seen: pruneList(state.seen, cutoff),
   };
 }
 
@@ -56,29 +67,41 @@ function upsert(list, id, now) {
 }
 
 function markRead(id, now = Date.now()) {
-  const state = load();
+  const state = loadFull();
   state.read = upsert(state.read, id, now);
   return save(state, now);
 }
 
 function markAllRead(ids, now = Date.now()) {
-  const state = load();
+  const state = loadFull();
   for (const id of ids) state.read = upsert(state.read, id, now);
   return save(state, now);
 }
 
 function clear(ids, now = Date.now()) {
-  const state = load();
+  const state = loadFull();
   for (const id of ids) state.cleared = upsert(state.cleared, id, now);
   return save(state, now);
 }
 
-function isRead(id, state = load()) {
+// Phase 3 cross-machine toast dedupe: record every id the spoke has polled from
+// the host so a restart / host-nap recovery can't toast-storm the backlog.
+function markSeen(ids, now = Date.now()) {
+  const state = loadFull();
+  for (const id of ids) state.seen = upsert(state.seen, id, now);
+  return save(state, now);
+}
+
+function isRead(id, state = loadFull()) {
   return state.read.some((e) => e.id === id);
 }
 
-function isCleared(id, state = load()) {
+function isCleared(id, state = loadFull()) {
   return state.cleared.some((e) => e.id === id);
 }
 
-module.exports = { load, save, prune, markRead, markAllRead, clear, isRead, isCleared };
+function isSeen(id, state = loadFull()) {
+  return state.seen.some((e) => e.id === id);
+}
+
+module.exports = { load, loadFull, save, prune, markRead, markAllRead, clear, markSeen, isRead, isCleared, isSeen };

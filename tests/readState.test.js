@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -82,5 +82,66 @@ describe("readState overlay", () => {
     };
     rs.save(state, NOW);
     expect(rs.load().read.map((e) => e.id)).toEqual(["fresh"]);
+  });
+});
+
+describe("readState seen-set (Phase 3)", () => {
+  it("markSeen persists {id, at} entries and isSeen reflects them", async () => {
+    const rs = await import("../app/readState.js");
+    rs.markSeen(["s1", "s2"], NOW);
+    const full = rs.loadFull();
+    expect(full.seen).toEqual([
+      { id: "s1", at: new Date(NOW).toISOString() },
+      { id: "s2", at: new Date(NOW).toISOString() },
+    ]);
+    expect(rs.isSeen("s1")).toBe(true);
+    expect(rs.isSeen("nope")).toBe(false);
+  });
+
+  it("markSeen upserts (no duplicate id, keeps latest at)", async () => {
+    const rs = await import("../app/readState.js");
+    rs.markSeen(["s1"], ago(1));
+    rs.markSeen(["s1"], NOW);
+    expect(rs.loadFull().seen).toEqual([{ id: "s1", at: new Date(NOW).toISOString() }]);
+  });
+
+  it("prunes seen entries by at, like read/cleared", async () => {
+    const { prune } = await import("../app/readState.js");
+    const state = {
+      read: [],
+      cleared: [],
+      seen: [{ id: "old", at: new Date(ago(20)).toISOString() }, { id: "fresh", at: new Date(ago(1)).toISOString() }],
+    };
+    expect(prune(state, NOW).seen.map((e) => e.id)).toEqual(["fresh"]);
+  });
+
+  it("caps the seen list at 500 newest", async () => {
+    const { prune } = await import("../app/readState.js");
+    const seen = Array.from({ length: 600 }, (_, i) => ({ id: "s" + i, at: new Date(ago(0)).toISOString() }));
+    const kept = prune({ read: [], cleared: [], seen }, NOW);
+    expect(kept.seen.length).toBe(500);
+    expect(kept.seen[kept.seen.length - 1].id).toBe("s599");
+  });
+
+  it("backward-compat: a read-state.json written without seen loads as seen: []", async () => {
+    const rs = await import("../app/readState.js");
+    // Legacy overlay file: no seen key at all (pre-Phase-3 shape).
+    writeFileSync(join(dir, "read-state.json"), JSON.stringify({
+      read: [{ id: "r1", at: new Date(NOW).toISOString() }],
+      cleared: [{ id: "c1", at: new Date(NOW).toISOString() }],
+    }));
+    expect(rs.loadFull().seen).toEqual([]);
+    // A subsequent markSeen adds to the (previously absent) list without dropping read/cleared.
+    rs.markSeen(["s1"], NOW);
+    const full = rs.loadFull();
+    expect(full.seen.map((e) => e.id)).toEqual(["s1"]);
+    expect(full.read.map((e) => e.id)).toEqual(["r1"]);
+    expect(full.cleared.map((e) => e.id)).toEqual(["c1"]);
+  });
+
+  it("public load() stays {read, cleared} (seen is internal-only)", async () => {
+    const rs = await import("../app/readState.js");
+    rs.markSeen(["s1"], NOW);
+    expect(rs.load()).toEqual({ read: [], cleared: [] });
   });
 });
