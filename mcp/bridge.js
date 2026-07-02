@@ -39,12 +39,27 @@ function launchTray() {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-async function ensureRunning(cfg, { attempts = 50, intervalMs = 200 } = {}) {
-  if (await healthy(cfg)) return;
-  launchTray();
+async function ensureRunning(cfg, opts = {}) {
+  const {
+    attempts = 50,
+    intervalMs = 200,
+    launch = launchTray,
+    check = healthy,
+    // Randomized settle window before we commit to launching. Two MCP servers
+    // (a second Claude Code instance) can both see an unhealthy tray at the same
+    // moment; a jittered re-check lets one win so the other skips the duplicate
+    // launch that would EADDRINUSE against the running hub's LAN bind. The
+    // Electron single-instance lock is the authoritative guard — this just
+    // avoids the wasteful spawn.
+    recheckDelayMs,
+  } = opts;
+  if (await check(cfg)) return;
+  await sleep(recheckDelayMs ?? 50 + Math.floor(Math.random() * 250));
+  if (await check(cfg)) return;
+  launch();
   for (let i = 0; i < attempts; i++) {
     await sleep(intervalMs);
-    if (await healthy(cfg)) return;
+    if (await check(cfg)) return;
   }
   throw new Error("Raccourier tray app did not become healthy within timeout");
 }

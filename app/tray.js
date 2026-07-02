@@ -24,6 +24,17 @@ function currentView() {
 const APP_ID = "com.raccourier.app";
 app.setAppUserModelId(APP_ID);
 
+// Single-instance guard. The MCP bridge auto-launches the tray, and a second
+// Claude Code instance can spawn a duplicate before the first hub is healthy.
+// A second tray would try to bind the same cfg.port/bind as the running hub and
+// die with EADDRINUSE (breaking the host/spoke model). Fail fast if we don't
+// own the lock; the primary instance surfaces its window instead.
+if (!app.requestSingleInstanceLock()) {
+  app.quit();
+  process.exit(0);
+}
+app.on("second-instance", () => showWindow());
+
 let win = null;
 let tray = null;
 let quitting = false;
