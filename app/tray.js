@@ -1,7 +1,7 @@
 const path = require("node:path");
 const os = require("node:os");
 const crypto = require("node:crypto");
-const { app, BrowserWindow, Tray, Menu, Notification, nativeImage, shell } = require("electron");
+const { app, BrowserWindow, Tray, Menu, Notification, nativeImage, shell, dialog } = require("electron");
 const { loadConfig } = require("../shared/config");
 const { teaser, buildRecord } = require("../shared/schema");
 const store = require("./store");
@@ -10,6 +10,7 @@ const { view } = require("./mergeView");
 const { createServer } = require("./httpServer");
 const { sendPushover } = require("./pushover");
 const { forwardToHost, pollHost, shouldToastRemote } = require("./hostLink");
+const { listenWithFallback } = require("./listenSafe");
 
 // Spoke read path: host records are polled on an interval and cached here; the
 // merged view is local ∪ host. On the host machine this stays [] (no polling).
@@ -203,8 +204,32 @@ app.whenReady().then(() => {
     getHostRecords: () => hostRecords,
   });
   // Host binds its LAN interface (config.bind) to accept spokes; spokes have no
-  // bind set and stay loopback.
-  httpServer.listen(cfg.port, cfg.bind || "127.0.0.1");
+  // bind set and stay loopback. A bad bind (wrong IP in config.json, DHCP lease
+  // change, NIC not up yet at login) must not kill the tray — local toasts,
+  // history, and the loopback MCP path don't depend on it.
+  const bind = cfg.bind || "127.0.0.1";
+  listenWithFallback(httpServer, cfg.port, bind).then(({ bound, error }) => {
+    if (bound === bind && bound !== "127.0.0.1") return; // LAN bind OK
+    if (bound === "127.0.0.1" && error) {
+      dialog.showErrorBox(
+        "Raccourier — LAN feed disabled",
+        `Couldn't bind ${bind}:${cfg.port} (${error.code}).\n\n` +
+          `"bind" in config.json must be one of this machine's current IP addresses — ` +
+          `check it with ipconfig (did your DHCP address change?).\n\n` +
+          `Raccourier is still running on 127.0.0.1: local notifications and history ` +
+          `work, but other machines can't reach this host until you fix "bind" and ` +
+          `restart.\n\nConfig: ${path.join(process.env.APPDATA || "", "Raccourier", "config.json")}`
+      );
+    } else if (bound === null) {
+      dialog.showErrorBox(
+        "Raccourier — couldn't start",
+        `Couldn't listen on port ${cfg.port} (${error && error.code}). ` +
+          `Another program may be using the port, or another Raccourier is already ` +
+          `running. Change "port" in config.json or close the conflicting program, ` +
+          `then restart Raccourier.`
+      );
+    }
+  });
 
   startHostPoll();
 
