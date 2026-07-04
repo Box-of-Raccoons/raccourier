@@ -135,7 +135,8 @@ meets the `toastRemote` floor.
 
 | Field | Machine | Effect |
 |---|---|---|
-| `host.url` | Spoke | `"http://<host-LAN-IP>:<port>"` — its presence marks this machine as a spoke. |
+| `secret` | Both | The one top-level `"secret"` authenticates everything — the local MCP path **and** all spoke↔host traffic. Host and every spoke must hold the **identical value**; there is no separate `host.secret`. |
+| `host` | Spoke | `{ "url": "http://<host-LAN-IP>:<port>" }` — its presence marks this machine as a spoke. `url` is the only key; credentials come from the top-level `secret`. |
 | `bind` | Host | LAN IP to listen on (e.g. `"192.168.1.10"`). Absent → loopback only; spokes can't reach a loopback-bound host. |
 | `toastRemote` | Either | Severity floor for cross-machine toasts: `"info"`, `"success"`, `"warning"` (default), `"alert"`, or `"never"` to disable. |
 
@@ -149,10 +150,31 @@ meets the `toastRemote` floor.
 ### Spoke setup (one-time)
 
 1. Add `"host": { "url": "http://<host-LAN-IP>:<port>" }` to the spoke's
-   `%APPDATA%\Raccourier\config.json`.
-2. **Copy the host's `secret`** into the spoke's config. Both machines must share
-   the same value — there is no automated pairing flow.
+   `%APPDATA%\Raccourier\config.json`. Use the **host's** port here — the spoke's
+   own `"port"` stays whatever was generated for it.
+2. **Replace the spoke's auto-generated top-level `"secret"` with the host's.**
+   Both machines must share the same value — there is no automated pairing flow,
+   and no nested `host.secret` field.
 3. Restart the tray app on the spoke.
+
+A working spoke config looks like this:
+
+```jsonc
+// spoke's %APPDATA%\Raccourier\config.json
+{
+  "port": 52341,                                   // spoke's own local port (keep the generated value)
+  "secret": "<paste the HOST's secret here>",      // shared — replaces the spoke's generated secret
+  "host": { "url": "http://192.168.1.10:46768" }   // host's LAN IP and the HOST's port
+}
+```
+
+**If the secrets differ, nothing errors loudly:** the host answers every forward
+and poll with 401, the spoke drops those failures by design (best-effort link),
+and the only symptom is "Host unreachable" in the spoke's window header while
+messages silently stop crossing machines. Quick check from the spoke:
+`curl -H "x-raccourier-secret: <host-secret>" http://<host-LAN-IP>:<port>/health`
+— `{"app":"raccourier",...}` means the pairing is good; `unauthorized` means the
+secrets still differ.
 
 > **Security note:** the shared secret travels over your LAN in cleartext (HTTP).
 > This is an accepted tradeoff on a trusted private network: the secret is a strong
