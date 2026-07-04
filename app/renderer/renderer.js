@@ -45,11 +45,24 @@ function render(record) {
   head.append(dot, title, spacer, time);
   el.append(head);
 
-  if (record.source) {
-    const src = document.createElement("span");
-    src.className = "source";
-    src.textContent = record.source;
-    el.append(src);
+  // Meta row: source (what workflow sent it) as the pill, origin (which
+  // machine/registration) as quiet text beside it. Either can appear alone.
+  if (record.source || record.origin) {
+    const meta = document.createElement("div");
+    meta.className = "meta";
+    if (record.source) {
+      const src = document.createElement("span");
+      src.className = "source";
+      src.textContent = record.source;
+      meta.append(src);
+    }
+    if (record.origin) {
+      const org = document.createElement("span");
+      org.className = "origin";
+      org.textContent = record.origin;
+      meta.append(org);
+    }
+    el.append(meta);
   }
 
   const body = document.createElement("div");
