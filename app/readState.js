@@ -84,6 +84,16 @@ function clear(ids, now = Date.now()) {
   return save(state, now);
 }
 
+// Undo a clear: drop ids back out of the cleared overlay so they reappear in the
+// merged view. Cheap and lossless because clear is overlay-only — the append-log
+// was never touched. Unknown ids are a no-op.
+function unclear(ids, now = Date.now()) {
+  const drop = new Set(ids);
+  const state = loadFull();
+  state.cleared = state.cleared.filter((e) => !drop.has(e.id));
+  return save(state, now);
+}
+
 // Phase 3 cross-machine toast dedupe: record every id the spoke has polled from
 // the host so a restart / host-nap recovery can't toast-storm the backlog.
 function markSeen(ids, now = Date.now()) {
@@ -104,4 +114,4 @@ function isSeen(id, state = loadFull()) {
   return state.seen.some((e) => e.id === id);
 }
 
-module.exports = { load, loadFull, save, prune, markRead, markAllRead, clear, markSeen, isRead, isCleared, isSeen };
+module.exports = { load, loadFull, save, prune, markRead, markAllRead, clear, unclear, markSeen, isRead, isCleared, isSeen };

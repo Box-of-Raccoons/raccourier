@@ -17,8 +17,34 @@ const { listenWithFallback, resolveBindHost } = require("./listenSafe");
 let hostRecords = [];
 const POLL_INTERVAL_MS = 15000;
 
+// Connection status surfaced to the renderer's header dot. `listenResult` is set
+// once the HTTP listener resolves; `hostReachable` tracks spoke->host poll health.
+let listenResult = null;
+let hostReachable = null;
+
 function currentView() {
   return view(store.load(), hostRecords, readState.load());
+}
+
+// Display-ready status for the renderer: { tone, text, detail }. Policy lives here
+// so the renderer just paints a dot (color) + label (text, never color alone).
+function computeStatus() {
+  if (listenResult === null) return { tone: "idle", text: "Starting…", detail: "Bringing up the listener." };
+  if (listenResult.bound === null) {
+    return { tone: "down", text: "Not listening", detail: `Port ${cfg.port} is unavailable — deliveries can't arrive until it's freed and Raccourier restarts.` };
+  }
+  const loopbackOnly = listenResult.bound === "127.0.0.1" && listenResult.error;
+  if (cfg.host && cfg.host.url && hostReachable === false) {
+    return { tone: "warn", text: "Host unreachable", detail: `Local deliveries work; can't reach the host at ${cfg.host.url}.` };
+  }
+  if (loopbackOnly) {
+    return { tone: "warn", text: "Local only", detail: "LAN feed disabled (port busy); local notifications and the MCP path still work." };
+  }
+  return { tone: "ok", text: "Listening", detail: "Ready for deliveries." };
+}
+
+function sendStatus() {
+  if (win && !win.isDestroyed() && win.webContents) win.webContents.send("status", computeStatus());
 }
 
 const APP_ID = "com.raccourier.app";
@@ -147,7 +173,12 @@ function startHostPoll() {
   if (!cfg.host || !cfg.host.url) return;
   setInterval(async () => {
     const records = await pollHost(cfg);
-    if (!records) return; // poll failed — keep the last known host records
+    if (!records) {
+      // Poll failed — keep the last known host records, but surface the outage.
+      if (hostReachable !== false) { hostReachable = false; sendStatus(); }
+      return;
+    }
+    if (hostReachable !== true) { hostReachable = true; sendStatus(); }
     hostRecords = records;
     // Toast only records that are new (not in the persisted seen-set) AND not
     // locally-originated (our own forwarded record, already toasted at onNotify;
@@ -220,7 +251,10 @@ app.whenReady().then(() => {
   // listen on all interfaces (0.0.0.0); the secret guards the port. Spokes have
   // no bind set and stay loopback-only. See resolveBindHost.
   const listenHost = resolveBindHost(cfg);
-  listenWithFallback(httpServer, cfg.port, listenHost).then(({ bound, error }) => {
+  listenWithFallback(httpServer, cfg.port, listenHost).then((result) => {
+    const { bound, error } = result;
+    listenResult = result;
+    sendStatus();
     if (bound === listenHost && listenHost !== "127.0.0.1") return; // all-interfaces bind OK (LAN + loopback)
     if (bound === "127.0.0.1" && error) {
       dialog.showErrorBox(
@@ -247,11 +281,17 @@ app.whenReady().then(() => {
   const { ipcMain } = require("electron");
   ipcMain.on("ready", (e) => {
     e.sender.send("init", currentView().slice().reverse());
+    e.sender.send("status", computeStatus());
   });
   ipcMain.on("clear", (e) => {
     // Overlay-only: hide the currently-visible ids; never wipe the append-log.
     readState.clear(currentView().map((r) => r.id), Date.now());
     e.sender.send("init", []);
+  });
+  ipcMain.on("unclear", (e, ids) => {
+    // Undo a clear: drop the ids back out of the cleared overlay, then repaint.
+    readState.unclear(Array.isArray(ids) ? ids : [], Date.now());
+    e.sender.send("init", currentView().slice().reverse());
   });
   ipcMain.on("mark-read", (_e, id) => readState.markRead(id, Date.now()));
   ipcMain.on("mark-all-read", () => readState.markAllRead(currentView().map((r) => r.id), Date.now()));

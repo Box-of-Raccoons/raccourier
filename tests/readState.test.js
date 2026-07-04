@@ -55,6 +55,35 @@ describe("readState overlay", () => {
     expect(rs.isCleared("z")).toBe(false);
   });
 
+  it("unclear removes ids from the cleared list (undo), leaving the rest", async () => {
+    const rs = await import("../app/readState.js");
+    rs.clear(["x", "y", "z"], NOW);
+    rs.unclear(["x", "z"], NOW);
+    const state = rs.load();
+    expect(state.cleared.map((e) => e.id)).toEqual(["y"]);
+    expect(rs.isCleared("x")).toBe(false);
+    expect(rs.isCleared("y")).toBe(true);
+  });
+
+  it("unclear is a no-op for ids that were never cleared", async () => {
+    const rs = await import("../app/readState.js");
+    rs.clear(["a"], NOW);
+    rs.unclear(["nope"], NOW);
+    expect(rs.load().cleared.map((e) => e.id)).toEqual(["a"]);
+  });
+
+  it("unclear preserves read and seen entries", async () => {
+    const rs = await import("../app/readState.js");
+    rs.markRead("r1", NOW);
+    rs.markSeen(["s1"], NOW);
+    rs.clear(["c1"], NOW);
+    rs.unclear(["c1"], NOW);
+    const full = rs.loadFull();
+    expect(full.cleared).toEqual([]);
+    expect(full.read.map((e) => e.id)).toEqual(["r1"]);
+    expect(full.seen.map((e) => e.id)).toEqual(["s1"]);
+  });
+
   it("prune drops entries older than 14 days by their at", async () => {
     const { prune } = await import("../app/readState.js");
     const state = {

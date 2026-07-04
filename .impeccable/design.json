@@ -1,0 +1,357 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-04T00:00:00.000Z",
+  "title": "Design System: Raccourier",
+  "extensions": {
+    "colorMeta": {
+      "teal": {
+        "role": "primary",
+        "displayName": "Info Teal",
+        "canonical": "oklch(0.78 0.085 168)",
+        "tonalRamp": [
+          "oklch(0.15 0.055 168)",
+          "oklch(0.25 0.065 168)",
+          "oklch(0.35 0.073 168)",
+          "oklch(0.48 0.081 168)",
+          "oklch(0.6 0.085 168)",
+          "oklch(0.72 0.081 168)",
+          "oklch(0.86 0.073 168)",
+          "oklch(0.95 0.065 168)"
+        ]
+      },
+      "green": {
+        "role": "secondary",
+        "displayName": "Success Green",
+        "canonical": "oklch(0.79 0.11 155)",
+        "tonalRamp": [
+          "oklch(0.15 0.072 155)",
+          "oklch(0.25 0.084 155)",
+          "oklch(0.35 0.095 155)",
+          "oklch(0.48 0.105 155)",
+          "oklch(0.6 0.11 155)",
+          "oklch(0.72 0.105 155)",
+          "oklch(0.86 0.094 155)",
+          "oklch(0.95 0.084 155)"
+        ]
+      },
+      "amber": {
+        "role": "tertiary",
+        "displayName": "Attention Amber",
+        "canonical": "oklch(0.8 0.115 68)",
+        "tonalRamp": [
+          "oklch(0.15 0.075 68)",
+          "oklch(0.25 0.088 68)",
+          "oklch(0.35 0.099 68)",
+          "oklch(0.48 0.11 68)",
+          "oklch(0.6 0.115 68)",
+          "oklch(0.72 0.11 68)",
+          "oklch(0.86 0.098 68)",
+          "oklch(0.95 0.088 68)"
+        ]
+      },
+      "tan": {
+        "role": "tertiary",
+        "displayName": "Worn Tan",
+        "canonical": "oklch(0.77 0.045 78)",
+        "tonalRamp": [
+          "oklch(0.15 0.029 78)",
+          "oklch(0.25 0.035 78)",
+          "oklch(0.35 0.039 78)",
+          "oklch(0.48 0.043 78)",
+          "oklch(0.6 0.045 78)",
+          "oklch(0.72 0.043 78)",
+          "oklch(0.86 0.039 78)",
+          "oklch(0.95 0.035 78)"
+        ]
+      },
+      "rust": {
+        "role": "tertiary",
+        "displayName": "Alarm Rust",
+        "canonical": "oklch(0.68 0.15 38)",
+        "tonalRamp": [
+          "oklch(0.15 0.098 38)",
+          "oklch(0.25 0.115 38)",
+          "oklch(0.35 0.13 38)",
+          "oklch(0.48 0.144 38)",
+          "oklch(0.6 0.15 38)",
+          "oklch(0.72 0.144 38)",
+          "oklch(0.86 0.128 38)",
+          "oklch(0.95 0.115 38)"
+        ]
+      },
+      "bg": {
+        "role": "neutral",
+        "displayName": "Room Charcoal",
+        "canonical": "oklch(0.21 0.012 165)",
+        "tonalRamp": [
+          "oklch(0.15 0.008 165)",
+          "oklch(0.25 0.009 165)",
+          "oklch(0.35 0.01 165)",
+          "oklch(0.48 0.011 165)",
+          "oklch(0.6 0.012 165)",
+          "oklch(0.72 0.011 165)",
+          "oklch(0.86 0.01 165)",
+          "oklch(0.95 0.009 165)"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Card Charcoal",
+        "canonical": "oklch(0.255 0.014 165)",
+        "tonalRamp": [
+          "oklch(0.15 0.009 165)",
+          "oklch(0.25 0.011 165)",
+          "oklch(0.35 0.012 165)",
+          "oklch(0.48 0.013 165)",
+          "oklch(0.6 0.014 165)",
+          "oklch(0.72 0.013 165)",
+          "oklch(0.86 0.012 165)",
+          "oklch(0.95 0.011 165)"
+        ]
+      },
+      "surface-2": {
+        "role": "neutral",
+        "displayName": "Raised Charcoal",
+        "canonical": "oklch(0.305 0.016 165)",
+        "tonalRamp": [
+          "oklch(0.15 0.01 165)",
+          "oklch(0.25 0.012 165)",
+          "oklch(0.35 0.014 165)",
+          "oklch(0.48 0.015 165)",
+          "oklch(0.6 0.016 165)",
+          "oklch(0.72 0.015 165)",
+          "oklch(0.86 0.014 165)",
+          "oklch(0.95 0.012 165)"
+        ]
+      },
+      "ink-well": {
+        "role": "neutral",
+        "displayName": "Ink Well",
+        "canonical": "oklch(0.16 0.01 165)",
+        "tonalRamp": [
+          "oklch(0.15 0.007 165)",
+          "oklch(0.25 0.008 165)",
+          "oklch(0.35 0.009 165)",
+          "oklch(0.48 0.01 165)",
+          "oklch(0.6 0.01 165)",
+          "oklch(0.72 0.01 165)",
+          "oklch(0.86 0.009 165)",
+          "oklch(0.95 0.008 165)"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Bright Ink",
+        "canonical": "oklch(0.95 0.008 95)",
+        "tonalRamp": [
+          "oklch(0.15 0.005 95)",
+          "oklch(0.25 0.006 95)",
+          "oklch(0.35 0.007 95)",
+          "oklch(0.48 0.008 95)",
+          "oklch(0.6 0.008 95)",
+          "oklch(0.72 0.008 95)",
+          "oklch(0.86 0.007 95)",
+          "oklch(0.95 0.006 95)"
+        ]
+      },
+      "ink-soft": {
+        "role": "neutral",
+        "displayName": "Soft Ink",
+        "canonical": "oklch(0.82 0.012 120)",
+        "tonalRamp": [
+          "oklch(0.15 0.008 120)",
+          "oklch(0.25 0.009 120)",
+          "oklch(0.35 0.01 120)",
+          "oklch(0.48 0.011 120)",
+          "oklch(0.6 0.012 120)",
+          "oklch(0.72 0.011 120)",
+          "oklch(0.86 0.01 120)",
+          "oklch(0.95 0.009 120)"
+        ]
+      },
+      "ink-muted": {
+        "role": "neutral",
+        "displayName": "Muted Ink",
+        "canonical": "oklch(0.7 0.014 140)",
+        "tonalRamp": [
+          "oklch(0.15 0.009 140)",
+          "oklch(0.25 0.011 140)",
+          "oklch(0.35 0.012 140)",
+          "oklch(0.48 0.013 140)",
+          "oklch(0.6 0.014 140)",
+          "oklch(0.72 0.013 140)",
+          "oklch(0.86 0.012 140)",
+          "oklch(0.95 0.011 140)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "wordmark": {
+        "displayName": "Wordmark",
+        "purpose": "Raccourier in the header; the only 700 weight, leading R in teal."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "A message title; the glanceable one-line anchor of each card. Truncates with ellipsis."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Rendered markdown message prose in soft ink; the only long-form text."
+      },
+      "meta": {
+        "displayName": "Meta",
+        "purpose": "Timestamps (tabular-nums) and the source badge; quiet, out of the way."
+      },
+      "mono": {
+        "displayName": "Mono",
+        "purpose": "Inline and block code inside a message; the voice of whatever the agent pasted."
+      }
+    },
+    "shadows": [
+      {
+        "name": "card-lift",
+        "value": "0 1px 2px oklch(0 0 0 / 0.25)",
+        "purpose": "Faint dimensionality on an unread message card; removed when read."
+      },
+      {
+        "name": "alert-flare",
+        "value": "0 0 0 1px oklch(0.68 0.15 38 / 0.15), 0 2px 10px oklch(0.68 0.15 38 / 0.14)",
+        "purpose": "Rust ring + soft glow lifting an alert message off the calm stack."
+      },
+      {
+        "name": "top-glow",
+        "value": "radial-gradient(120% 80% at 50% -30%, oklch(0.78 0.085 168 / 0.10), transparent 70%)",
+        "purpose": "Fixed 160px teal wash from the top edge, echoing the toast the message arrived as."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Default easing for all state transitions and the message entrance."
+      },
+      {
+        "name": "msg-in",
+        "value": "translateY(-8px) scale(0.99) -> none, 0.42s",
+        "purpose": "New-message entrance: slides down and settles as it prepends to the top."
+      }
+    ],
+    "breakpoints": []
+  },
+  "components": [
+    {
+      "name": "Message Card (unread, info)",
+      "kind": "card",
+      "refersTo": "message",
+      "description": "The signature: a severity-tinted card, dot + title + time, source badge, markdown body. Clicking marks it read.",
+      "html": "<article class=\"ds-msg\"><div class=\"ds-msg-head\"><span class=\"ds-dot\"></span><span class=\"ds-title\">Morning mail triage: 12 threads</span><span class=\"ds-spacer\"></span><time class=\"ds-time\">1h ago</time></div><span class=\"ds-source\">gmail-jira-triage</span><div class=\"ds-body\">Two threads need a reply.</div></article>",
+      "css": ".ds-msg{--sev:oklch(0.78 0.085 168);background:color-mix(in oklch, oklch(0.255 0.014 165) 91%, var(--sev) 9%);border:1px solid oklch(1 0 0 / 0.08);border-radius:12px;padding:12px 14px;box-shadow:0 1px 2px oklch(0 0 0 / 0.25);color:oklch(0.95 0.008 95);font-family:\"Segoe UI Variable Text\",system-ui,sans-serif;cursor:pointer;transition:background .3s cubic-bezier(0.16,1,0.3,1),border-color .2s}.ds-msg:hover{border-color:oklch(1 0 0 / 0.14);background:color-mix(in oklch, oklch(0.255 0.014 165) 85%, var(--sev) 15%)}.ds-msg-head{display:flex;align-items:center;gap:8px;margin-bottom:6px}.ds-dot{width:8px;height:8px;border-radius:50%;background:var(--sev);box-shadow:0 0 0 3px color-mix(in oklch, var(--sev) 22%, transparent)}.ds-title{font-weight:600;font-size:14px;letter-spacing:-0.005em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ds-spacer{flex:1}.ds-time{font-size:11px;font-variant-numeric:tabular-nums;color:oklch(0.70 0.014 140)}.ds-source{display:inline-block;font-size:10.5px;font-weight:600;letter-spacing:0.02em;color:color-mix(in oklch, oklch(0.77 0.045 78) 82%, white);background:oklch(0.77 0.045 78 / 0.12);border:1px solid oklch(0.77 0.045 78 / 0.20);padding:1px 8px;border-radius:999px;margin-bottom:8px}.ds-body{font-size:13px;line-height:1.6;color:oklch(0.82 0.012 120)}"
+    },
+    {
+      "name": "Message Card (alert)",
+      "kind": "card",
+      "refersTo": "message",
+      "description": "The one card allowed to break the calm: rust dot, rust-mixed border, and the alert flare glow.",
+      "html": "<article class=\"ds-msg-alert\"><div class=\"ds-msg-head\"><span class=\"ds-dot-a\"></span><span class=\"ds-title\">Deploy failed - UAT is down</span><span class=\"ds-spacer\"></span><time class=\"ds-time\">2m ago</time></div><div class=\"ds-body\">Render build exited 1.</div></article>",
+      "css": ".ds-msg-alert{--sev:oklch(0.68 0.15 38);background:color-mix(in oklch, oklch(0.255 0.014 165) 91%, var(--sev) 9%);border:1px solid color-mix(in oklch, oklch(1 0 0 / 0.14) 40%, var(--sev) 40%);border-radius:12px;padding:12px 14px;box-shadow:0 0 0 1px oklch(0.68 0.15 38 / 0.15),0 2px 10px oklch(0.68 0.15 38 / 0.14);color:oklch(0.95 0.008 95);font-family:\"Segoe UI Variable Text\",system-ui,sans-serif}.ds-msg-alert .ds-msg-head{display:flex;align-items:center;gap:8px;margin-bottom:6px}.ds-dot-a{width:8px;height:8px;border-radius:50%;background:var(--sev);box-shadow:0 0 0 3px color-mix(in oklch, var(--sev) 22%, transparent)}.ds-msg-alert .ds-title{font-weight:600;font-size:14px}.ds-msg-alert .ds-spacer{flex:1}.ds-msg-alert .ds-time{font-size:11px;color:oklch(0.70 0.014 140)}.ds-msg-alert .ds-body{font-size:13px;line-height:1.6;color:oklch(0.82 0.012 120)}"
+    },
+    {
+      "name": "Message Card (read)",
+      "kind": "card",
+      "refersTo": "message-read",
+      "description": "Handled: flat surface, no tint or shadow, dimmed, hollow-ring dot. Visibly done, never gone.",
+      "html": "<article class=\"ds-msg-read\"><div class=\"ds-msg-head\"><span class=\"ds-dot-r\"></span><span class=\"ds-title-r\">PR #218 merged and deployed</span><span class=\"ds-spacer\"></span><time class=\"ds-time\">3h ago</time></div><div class=\"ds-body-r\">fix/host-loopback-bind is live on UAT.</div></article>",
+      "css": ".ds-msg-read{background:oklch(0.255 0.014 165);border:1px solid oklch(1 0 0 / 0.08);border-radius:12px;padding:12px 14px;opacity:0.7;font-family:\"Segoe UI Variable Text\",system-ui,sans-serif}.ds-msg-read .ds-msg-head{display:flex;align-items:center;gap:8px;margin-bottom:6px}.ds-dot-r{width:8px;height:8px;border-radius:50%;background:transparent;border:1.5px solid oklch(0.70 0.014 140)}.ds-title-r{font-weight:500;font-size:14px;color:oklch(0.82 0.012 120)}.ds-msg-read .ds-spacer{flex:1}.ds-msg-read .ds-time{font-size:11px;color:oklch(0.70 0.014 140)}.ds-body-r{font-size:13px;line-height:1.6;color:oklch(0.82 0.012 120)}"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Header actions (Mark all read, Clear); transparent pill, warms on hover.",
+      "html": "<button class=\"ds-btn-ghost\">Mark all read</button>",
+      "css": ".ds-btn-ghost{font-family:\"Segoe UI Variable Text\",system-ui,sans-serif;font-size:12px;font-weight:600;color:oklch(0.82 0.012 120);background:transparent;border:1px solid oklch(1 0 0 / 0.14);border-radius:999px;padding:5px 13px;cursor:pointer;transition:color .15s,background .15s,border-color .15s}.ds-btn-ghost:hover{color:oklch(0.95 0.008 95);background:oklch(0.305 0.016 165);border-color:transparent}.ds-btn-ghost:active{transform:translateY(0.5px)}.ds-btn-ghost:focus-visible{outline:2px solid oklch(0.78 0.085 168);outline-offset:2px}"
+    },
+    {
+      "name": "Source Badge",
+      "kind": "chip",
+      "refersTo": "source-badge",
+      "description": "Low-chroma tan pill marking a message source/origin; context, not headline.",
+      "html": "<span class=\"ds-source-badge\">home-codex</span>",
+      "css": ".ds-source-badge{display:inline-block;font-family:\"Segoe UI Variable Text\",system-ui,sans-serif;font-size:10.5px;font-weight:600;letter-spacing:0.02em;color:color-mix(in oklch, oklch(0.77 0.045 78) 82%, white);background:oklch(0.77 0.045 78 / 0.12);border:1px solid oklch(0.77 0.045 78 / 0.20);padding:1px 8px;border-radius:999px}"
+    },
+    {
+      "name": "Empty State",
+      "kind": "custom",
+      "refersTo": "empty",
+      "description": "Sanctioned warmth moment: centered teal parcel glyph in a soft tile over friendly copy.",
+      "html": "<div class=\"ds-empty\"><span class=\"ds-empty-glyph\"><svg viewBox=\"0 0 24 24\" width=\"34\" height=\"34\" fill=\"none\" stroke=\"oklch(0.78 0.085 168)\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M3 8.5l9-5 9 5v7l-9 5-9-5z\"/><path d=\"M3 8.5l9 5 9-5\"/><path d=\"M12 13.5V19\"/></svg></span><h2 class=\"ds-empty-h\">No deliveries yet</h2><p class=\"ds-empty-p\">Raccourier will drop your alerts right here.</p></div>",
+      "css": ".ds-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:32px;text-align:center;color:oklch(0.70 0.014 140);font-family:\"Segoe UI Variable Text\",system-ui,sans-serif}.ds-empty-glyph{width:64px;height:64px;display:grid;place-items:center;border-radius:18px;background:color-mix(in oklch, oklch(0.255 0.014 165) 80%, oklch(0.78 0.085 168) 20%);border:1px solid oklch(1 0 0 / 0.08);box-shadow:0 8px 24px oklch(0 0 0 / 0.3)}.ds-empty-h{margin:0;font-size:15px;color:oklch(0.95 0.008 95);font-weight:650}.ds-empty-p{margin:0;font-size:12.5px;max-width:30ch;line-height:1.5}"
+    },
+    {
+      "name": "Inline Code",
+      "kind": "custom",
+      "refersTo": "code-inline",
+      "description": "Amber-on-ink-well inline code inside a message body; the one warm highlight in machine text.",
+      "html": "<p class=\"ds-code-host\">Last green commit <code class=\"ds-code\">8a27df2</code></p>",
+      "css": ".ds-code-host{font-family:\"Segoe UI Variable Text\",system-ui,sans-serif;font-size:13px;color:oklch(0.82 0.012 120)}.ds-code{font-family:\"Cascadia Code\",\"Consolas\",ui-monospace,monospace;font-size:0.88em;background:oklch(0.16 0.01 165);color:color-mix(in oklch, oklch(0.80 0.115 68) 70%, oklch(0.95 0.008 95));padding:1px 5px;border-radius:5px}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Courier’s Desk",
+    "overview": "Raccourier is the corner of the desk a local Claude agent drops your alerts on. A single always-on window over a warm dark-charcoal canvas: a quiet stack of message cards, newest on top, each legible in a one-second glance. The room is dim so a delivery reads bright, a faint teal glow bleeds from the top edge, and every message wears exactly as much color as its urgency earns. Color is severity here, never decoration. This is the source of the shared brand family SeniorDev sampled its palette from; where the workbench keeps the raccoon offstage, Raccourier is the mascot’s home turf. It reads as warm, quietly capable, and honest — a friendly courier, not a notification-center nag.",
+    "keyCharacteristics": [
+      "Dark warm-charcoal canvas, warm off-white ink, one soft teal glow.",
+      "OKLCH throughout — the palette is authored and reasoned in OKLCH, not hex.",
+      "Severity IS color: info/teal, success/green, warning/amber, alert/rust — earned per message, never decorative.",
+      "Flat tonal layering (bg/surface/surface-2) plus hairlines; shadow reserved for arrival and lift.",
+      "One consumer sans (Segoe UI Variable) for everything the human reads; mono only inside message code.",
+      "Calm at rest; intensity reserved for what matters."
+    ],
+    "rules": [
+      {
+        "name": "The Severity-Is-Color Rule",
+        "body": "Teal, green, amber, and rust appear only as message severity (and their fixed interactive roles). Never brand flavor or decoration; severity is never conveyed by color alone.",
+        "section": "colors"
+      },
+      {
+        "name": "The Earned-Intensity Rule",
+        "body": "Chroma tracks urgency. Info sits at a whisper (~9% surface tint); an alert is the one message permitted a colored border and a glow.",
+        "section": "colors"
+      },
+      {
+        "name": "The Fixed-Scale Rule",
+        "body": "Type sizes are fixed px/em, never clamp(). A notifier window is viewed at a consistent size and DPI.",
+        "section": "typography"
+      },
+      {
+        "name": "The One-Family Rule",
+        "body": "Segoe UI Variable for everything the human reads; Cascadia/Consolas only for code the agent emitted.",
+        "section": "typography"
+      },
+      {
+        "name": "The Tone-First Rule",
+        "body": "Reach for a lighter plane or the severity tint before a shadow. Shadow is for arrival and lift, not for separating stacked cards.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do author every color in OKLCH; the frontmatter values are the source of truth.",
+      "Do map color to severity and nothing else; reserve rust and the Alert Flare for genuine alerts.",
+      "Do convey depth with the tonal planes and hairlines first; reach for a shadow only for card lift, the alert flare, or arrival.",
+      "Do keep the window legible at a glance - dot, title, source, time land first; body is for the lean-in.",
+      "Do give every interactive element a visible outline focus state - the audience is keyboard-first.",
+      "Do pair severity with the dot, title weight, copy, and (for alerts) border + shadow; never rely on color alone.",
+      "Do honor prefers-reduced-motion with an instant alternative.",
+      "Do verify ink-muted body/caption text clears 4.5:1 on its plane, including over a severity-tinted card."
+    ],
+    "donts": [
+      "Don’t build a SaaS notification center: no gray-row dropdowns, card grids, or hero-metric tiles.",
+      "Don’t manufacture urgency - no anxiety badges, bouncing icons, or red dots that guilt-trip.",
+      "Don’t over-mascot or turn warmth into a sticker pack; the raccoon leads in moments, not every message.",
+      "Don’t add flashy or decorative motion or glassmorphism; the one blur is the functional sticky header.",
+      "Don’t use background-clip:text gradient text, or a colored border-left/right > 1px as a stripe accent.",
+      "Don’t use clamp()/fluid type or a display font anywhere.",
+      "Don’t let a read message stay loud - read is visibly done (dim, flat, hollow dot)."
+    ]
+  }
+}

@@ -29,6 +29,7 @@
 
   /* z-scale */
   --z-header: 10;
+  --z-toast: 40;
 
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -116,6 +117,43 @@ header {
 
 .actions { display: flex; align-items: center; gap: 8px; }
 .btn-clear:hover { color: oklch(0.86 0.09 38); background: oklch(0.68 0.15 38 / 0.12); }
+
+/* ---------- Connection status ---------- */
+/* Quiet by default; color is paired with text (never color alone) and a tooltip. */
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-muted);
+  white-space: nowrap;
+}
+.status[hidden] { display: none; }
+.status-dot {
+  flex: none;
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--ink-muted);
+}
+.status[data-tone="ok"]   { color: var(--ink-soft); }
+.status[data-tone="ok"]   .status-dot { background: var(--teal);  box-shadow: 0 0 0 3px color-mix(in oklch, var(--teal) 20%, transparent); }
+.status[data-tone="warn"] { color: var(--ink-soft); }
+.status[data-tone="warn"] .status-dot { background: var(--amber); box-shadow: 0 0 0 3px color-mix(in oklch, var(--amber) 20%, transparent); }
+.status[data-tone="down"] { color: oklch(0.86 0.09 38); }
+.status[data-tone="down"] .status-dot { background: var(--rust);  box-shadow: 0 0 0 3px color-mix(in oklch, var(--rust) 24%, transparent); }
+
+/* Narrow header: keep the dot + tooltip visible, keep the label for assistive tech. */
+@media (max-width: 400px) {
+  .status-text {
+    position: absolute;
+    width: 1px; height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+}
 
 /* ---------- List ---------- */
 main#list {
@@ -275,21 +313,30 @@ main#list::-webkit-scrollbar-thumb:hover { background: oklch(0.36 0.016 165); }
   background: color-mix(in oklch, var(--surface) 85%, var(--sev) 15%);
 }
 
-/* Read = handled: dimmed, flat (no severity tint), quiet hollow dot. */
+/* Keyboard focus — the surface is roving-tabindex operable. */
+.msg:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
+}
+
+/* Read = handled: flat (no severity tint), quiet hollow dot, dimmed ink.
+   "Done" is carried by muted ink + flatness, NOT a blanket opacity — a whole-card
+   opacity:0.6 dropped body text under WCAG AA (4.15:1). ink-muted here stays >=4.5. */
 .msg.read {
   background: var(--surface);
   border-color: var(--hairline);
-  opacity: 0.6;
   box-shadow: none;
   cursor: default;
-  transition: background 0.3s var(--ease-out), opacity 0.3s var(--ease-out);
+  transition: background 0.3s var(--ease-out), color 0.3s var(--ease-out);
 }
 .msg.read .dot {
   background: transparent;
   border: 1.5px solid var(--ink-muted);
   box-shadow: none;
 }
-.msg.read .title { font-weight: 500; color: var(--ink-soft); }
+.msg.read .title { font-weight: 500; color: var(--ink-muted); }
+.msg.read .body { color: var(--ink-muted); }
+.msg.read .source { opacity: 0.75; }
 
 /* ---------- Entrance motion ---------- */
 @keyframes msg-in {
@@ -297,6 +344,46 @@ main#list::-webkit-scrollbar-thumb:hover { background: oklch(0.36 0.016 165); }
   to   { opacity: 1; transform: none; }
 }
 .msg.enter { animation: msg-in 0.42s var(--ease-out); }
+
+/* ---------- Undo strip ---------- */
+/* Non-blocking safety net for Clear. Clear is overlay-only in the main process,
+   so Undo is lossless — it just drops the ids back out of the cleared overlay. */
+.undo {
+  position: fixed;
+  left: 12px; right: 12px; bottom: 12px;
+  z-index: var(--z-toast);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 12px 9px 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 8px 24px oklch(0 0 0 / 0.4);
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.2s var(--ease-out), transform 0.2s var(--ease-out);
+}
+.undo[hidden] { display: none; }
+.undo.show { opacity: 1; transform: none; }
+.undo-label { font-size: 13px; color: var(--ink-soft); }
+.undo-btn {
+  flex: none;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--bg);
+  background: var(--teal);
+  border: none;
+  border-radius: 999px;
+  padding: 5px 14px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.undo-btn:hover { background: oklch(0.82 0.085 168); }
+.undo-btn:active { transform: translateY(0.5px); }
+.undo-btn:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
 
 /* ---------- Empty state ---------- */
 .empty {
@@ -329,4 +416,6 @@ main#list::-webkit-scrollbar-thumb:hover { background: oklch(0.36 0.016 165); }
   .msg.enter { animation: none; }
   main#list { scroll-behavior: auto; }
   .btn-ghost, .msg, .msg.read { transition: none; }
+  .undo { transition: none; transform: none; }
+  .undo-btn { transition: none; }
 }
