@@ -235,6 +235,13 @@ main#list::-webkit-scrollbar-thumb:hover { background: oklch(0.36 0.016 165); }
   color: var(--ink-muted);
 }
 
+.meta {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
 .source {
   display: inline-block;
   font-size: 10.5px;
@@ -245,7 +252,17 @@ main#list::-webkit-scrollbar-thumb:hover { background: oklch(0.36 0.016 165); }
   border: 1px solid oklch(0.77 0.045 78 / 0.20);
   padding: 1px 8px;
   border-radius: 999px;
-  margin-bottom: 8px;
+}
+
+/* Origin: which machine/registration sent it — ambient provenance, so plain
+   muted text, never a second pill competing with the source. */
+.origin {
+  font-size: 10.5px;
+  letter-spacing: 0.02em;
+  color: var(--ink-muted);
+}
+.source + .origin::before {
+  content: "· ";
 }
 
 /* ---------- Markdown body ---------- */
@@ -336,7 +353,8 @@ main#list::-webkit-scrollbar-thumb:hover { background: oklch(0.36 0.016 165); }
 }
 .msg.read .title { font-weight: 500; color: var(--ink-muted); }
 .msg.read .body { color: var(--ink-muted); }
-.msg.read .source { opacity: 0.75; }
+.msg.read .source,
+.msg.read .origin { opacity: 0.75; }
 
 /* ---------- Entrance motion ---------- */
 @keyframes msg-in {
