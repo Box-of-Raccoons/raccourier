@@ -2,7 +2,7 @@ const path = require("node:path");
 const os = require("node:os");
 const crypto = require("node:crypto");
 const { app, BrowserWindow, Tray, Menu, Notification, nativeImage, shell, dialog } = require("electron");
-const { loadConfig } = require("../shared/config");
+const { loadConfig, configDir } = require("../shared/config");
 const { teaser, buildRecord } = require("../shared/schema");
 const store = require("./store");
 const readState = require("./readState");
@@ -11,6 +11,7 @@ const { createServer } = require("./httpServer");
 const { sendPushover } = require("./pushover");
 const { forwardToHost, pollHost, shouldToastRemote } = require("./hostLink");
 const { listenWithFallback, resolveBindHost } = require("./listenSafe");
+const { guardSingleInstance } = require("./singleInstance");
 
 // Spoke read path: host records are polled on an interval and cached here; the
 // merged view is local ∪ host. On the host machine this stays [] (no polling).
@@ -50,15 +51,9 @@ function sendStatus() {
 const APP_ID = "com.raccourier.app";
 app.setAppUserModelId(APP_ID);
 
-// Single-instance guard. The MCP bridge auto-launches the tray, and a second
-// Claude Code instance can spawn a duplicate before the first hub is healthy.
-// A second tray would try to bind the same cfg.port/bind as the running hub and
-// die with EADDRINUSE (breaking the host/spoke model). Fail fast if we don't
-// own the lock; the primary instance surfaces its window instead.
-if (!app.requestSingleInstanceLock()) {
-  app.quit();
-  process.exit(0);
-}
+// Single-instance guard, scoped to the config dir so a host and spokes with
+// distinct RACCOURIER_DIRs can coexist on one machine (see app/singleInstance.js).
+guardSingleInstance(app, configDir());
 app.on("second-instance", () => showWindow());
 
 let win = null;
