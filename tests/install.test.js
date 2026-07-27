@@ -15,11 +15,19 @@ describe("serverEntry", () => {
     expect(e.env).toEqual({});
   });
 
-  it("packaged (Raccourier.exe) entry sets ELECTRON_RUN_AS_NODE, never a bare --mcp", () => {
+  it("packaged entry sets ELECTRON_RUN_AS_NODE, never a bare --mcp", () => {
     const real = process.execPath;
+    // Detection is platform-aware (isPackagedExec), so build a packaged execPath
+    // for THIS platform — a bare Raccourier.exe only reads as packaged on win32.
+    const packaged =
+      process.platform === "darwin"
+        ? join(real, "..", "Raccourier.app", "Contents", "MacOS", "Raccourier")
+        : process.platform === "win32"
+          ? join(real, "..", "Raccourier.exe")
+          : join(real, "..", "raccourier");
     try {
-      // Simulate being invoked from the packaged exe.
-      Object.defineProperty(process, "execPath", { value: join(real, "..", "Raccourier.exe"), configurable: true });
+      // Simulate being invoked from the packaged binary.
+      Object.defineProperty(process, "execPath", { value: packaged, configurable: true });
       const e = serverEntry();
       expect(e.args).not.toContain("--mcp"); // the bug we are fixing
       expect(e.args[0]).toMatch(/server\.js$/);

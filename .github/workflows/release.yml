@@ -1,7 +1,25 @@
 name: Release
 
-# Builds the Windows installer and publishes it to a GitHub Release.
-# Trigger by pushing a version tag, e.g. `git tag v1.0.0 && git push origin v1.0.0`.
+# Builds the installers and publishes them to a GitHub Release.
+# - Push a version tag (e.g. `git tag v1.0.0 && git push origin v1.0.0`) to build
+#   AND publish both installers to the matching release.
+# - Run manually (workflow_dispatch) to build both platforms and upload the
+#   installers as run artifacts WITHOUT publishing — useful for verifying a branch.
+#
+# macOS is signed + notarized when the org/repo secrets below are set; each
+# credential step self-skips when its secret is absent, so the build still runs
+# unsigned without them. The macOS .app is notarized + stapled by electron-builder
+# during the build; the .dmg CONTAINER is notarized + stapled in a separate step
+# (electron-builder staples the app, not the dmg). Build and publish are split
+# into two jobs so the dmg is stapled BEFORE it is uploaded (electron-builder's
+# own --publish uploads mid-build, which would race the stapling).
+#
+# Required secrets (org-level on Box-of-Raccoons, or repo-level):
+#   APPLE_CERT_P12_BASE64  base64 of the Developer ID Application .p12
+#   APPLE_CERT_PASSWORD    password for that .p12
+#   ASC_KEY_P8_BASE64      base64 of the App Store Connect API key (.p8)
+#   ASC_KEY_ID             the API key's Key ID
+#   ASC_ISSUER_ID          the API key's Issuer ID
 on:
   push:
     tags:
@@ -12,8 +30,21 @@ permissions:
   contents: write
 
 jobs:
-  release:
-    runs-on: windows-latest
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            build_args: "--win"
+          - os: macos-latest
+            build_args: "--mac"
+    runs-on: ${{ matrix.os }}
+    # Surface the two "presence" secrets as env so step `if:` can gate on them
+    # (secrets aren't referenceable in `if:` directly).
+    env:
+      HAS_APPLE_CERT: ${{ secrets.APPLE_CERT_P12_BASE64 != '' }}
+      HAS_ASC_KEY: ${{ secrets.ASC_KEY_P8_BASE64 != '' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -30,7 +61,86 @@ jobs:
       - name: Run tests
         run: npm test
 
-      - name: Build and publish installer
-        run: npx electron-builder --win --publish always
+      - name: Import Developer ID certificate (macOS)
+        if: matrix.os == 'macos-latest' && env.HAS_APPLE_CERT == 'true'
+        uses: apple-actions/import-codesign-certs@63fff01cd422d4b7b855d40ca1e9d34d2de9427d # v3
+        with:
+          p12-file-base64: ${{ secrets.APPLE_CERT_P12_BASE64 }}
+          p12-password: ${{ secrets.APPLE_CERT_PASSWORD }}
+
+      - name: Set up notarization credentials (macOS)
+        # Writes the ASC API key and exports the env vars electron-builder reads to
+        # notarize the .app. The same vars are reused by the dmg-notarization step.
+        # Only runs when the secret exists, so absent creds => electron-builder
+        # skips notarization quietly and the dmg step self-skips too.
+        if: matrix.os == 'macos-latest' && env.HAS_ASC_KEY == 'true'
+        env:
+          ASC_KEY_P8_BASE64: ${{ secrets.ASC_KEY_P8_BASE64 }}
+        run: |
+          echo "$ASC_KEY_P8_BASE64" | base64 --decode > "$RUNNER_TEMP/asc_key.p8"
+          echo "APPLE_API_KEY=$RUNNER_TEMP/asc_key.p8" >> "$GITHUB_ENV"
+          echo "APPLE_API_KEY_ID=${{ secrets.ASC_KEY_ID }}" >> "$GITHUB_ENV"
+          echo "APPLE_API_ISSUER=${{ secrets.ASC_ISSUER_ID }}" >> "$GITHUB_ENV"
+
+      - name: Build installer (${{ matrix.os }})
+        # Never publish from electron-builder; the release job publishes the
+        # stapled artifacts so nothing un-stapled can be uploaded mid-build.
+        run: npx electron-builder ${{ matrix.build_args }} --publish never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Sign, notarize + staple the dmg (macOS)
+        # electron-builder notarizes/staples the .app but leaves the .dmg container
+        # unsigned + un-notarized. Sign the dmg with the Developer ID, notarize it,
+        # staple the ticket, then assert with spctl — so a downloaded dmg passes
+        # Gatekeeper offline (signature + ticket), not just the app inside it.
+        if: matrix.os == 'macos-latest' && env.HAS_ASC_KEY == 'true'
+        run: |
+          shopt -s nullglob
+          SIGN_ID=$(security find-identity -v -p codesigning | grep "Developer ID Application" | head -1 | awk '{print $2}')
+          echo "Signing identity: $SIGN_ID"
+          for dmg in dist/*.dmg; do
+            echo "==> Signing $dmg"
+            codesign --force --timestamp --sign "$SIGN_ID" "$dmg"
+            echo "==> Notarizing $dmg"
+            xcrun notarytool submit "$dmg" \
+              --key "$APPLE_API_KEY" --key-id "$APPLE_API_KEY_ID" --issuer "$APPLE_API_ISSUER" \
+              --wait
+            xcrun stapler staple "$dmg"
+            xcrun stapler validate "$dmg"
+            # Fail the build if Gatekeeper would not accept the downloaded dmg.
+            spctl -a -vvv -t open --context context:primary-signature "$dmg"
+          done
+
+      - name: Clean up secrets (macOS)
+        if: always() && matrix.os == 'macos-latest'
+        run: rm -f "$RUNNER_TEMP/asc_key.p8"
+
+      - name: Upload installer artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: raccourier-${{ matrix.os }}
+          path: |
+            dist/*.exe
+            dist/*.dmg
+          if-no-files-found: ignore
+
+  release:
+    # Publish the built + stapled installers to the tag's GitHub Release. Runs
+    # only on a version-tag push (never on manual verification runs).
+    needs: build
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Publish to GitHub Release
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
+        with:
+          files: |
+            artifacts/**/*.exe
+            artifacts/**/*.dmg
+          fail_on_unmatched_files: true
