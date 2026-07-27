@@ -89,20 +89,27 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Notarize + staple the dmg (macOS)
-        # electron-builder notarizes/staples the .app but not the .dmg container.
-        # Submit each dmg to notarytool, staple the ticket, and validate — so a
-        # downloaded dmg passes Gatekeeper offline, not just the app inside.
+      - name: Sign, notarize + staple the dmg (macOS)
+        # electron-builder notarizes/staples the .app but leaves the .dmg container
+        # unsigned + un-notarized. Sign the dmg with the Developer ID, notarize it,
+        # staple the ticket, then assert with spctl — so a downloaded dmg passes
+        # Gatekeeper offline (signature + ticket), not just the app inside it.
         if: matrix.os == 'macos-latest' && env.HAS_ASC_KEY == 'true'
         run: |
           shopt -s nullglob
+          SIGN_ID=$(security find-identity -v -p codesigning | grep "Developer ID Application" | head -1 | awk '{print $2}')
+          echo "Signing identity: $SIGN_ID"
           for dmg in dist/*.dmg; do
+            echo "==> Signing $dmg"
+            codesign --force --timestamp --sign "$SIGN_ID" "$dmg"
             echo "==> Notarizing $dmg"
             xcrun notarytool submit "$dmg" \
               --key "$APPLE_API_KEY" --key-id "$APPLE_API_KEY_ID" --issuer "$APPLE_API_ISSUER" \
               --wait
             xcrun stapler staple "$dmg"
             xcrun stapler validate "$dmg"
+            # Fail the build if Gatekeeper would not accept the downloaded dmg.
+            spctl -a -vvv -t open --context context:primary-signature "$dmg"
           done
 
       - name: Clean up secrets (macOS)
