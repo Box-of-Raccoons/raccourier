@@ -2,13 +2,19 @@ name: Release
 
 # Builds the installers and publishes them to a GitHub Release.
 # - Push a version tag (e.g. `git tag v1.0.0 && git push origin v1.0.0`) to build
-#   AND publish to the matching release.
+#   AND publish both installers to the matching release.
 # - Run manually (workflow_dispatch) to build both platforms and upload the
 #   installers as run artifacts WITHOUT publishing — useful for verifying a branch.
 #
-# macOS signing + notarization run automatically when these repo secrets are set;
-# without them the mac build proceeds unsigned (each credential step self-skips).
-# Required secrets (same ones claude-usage-watcher-mac uses):
+# macOS is signed + notarized when the org/repo secrets below are set; each
+# credential step self-skips when its secret is absent, so the build still runs
+# unsigned without them. The macOS .app is notarized + stapled by electron-builder
+# during the build; the .dmg CONTAINER is notarized + stapled in a separate step
+# (electron-builder staples the app, not the dmg). Build and publish are split
+# into two jobs so the dmg is stapled BEFORE it is uploaded (electron-builder's
+# own --publish uploads mid-build, which would race the stapling).
+#
+# Required secrets (org-level on Box-of-Raccoons, or repo-level):
 #   APPLE_CERT_P12_BASE64  base64 of the Developer ID Application .p12
 #   APPLE_CERT_PASSWORD    password for that .p12
 #   ASC_KEY_P8_BASE64      base64 of the App Store Connect API key (.p8)
@@ -24,7 +30,7 @@ permissions:
   contents: write
 
 jobs:
-  release:
+  build:
     strategy:
       fail-fast: false
       matrix:
@@ -64,8 +70,9 @@ jobs:
 
       - name: Set up notarization credentials (macOS)
         # Writes the ASC API key and exports the env vars electron-builder reads to
-        # notarize. Only runs when the secret exists, so absent creds => no notary
-        # env => electron-builder skips notarization quietly (no error).
+        # notarize the .app. The same vars are reused by the dmg-notarization step.
+        # Only runs when the secret exists, so absent creds => electron-builder
+        # skips notarization quietly and the dmg step self-skips too.
         if: matrix.os == 'macos-latest' && env.HAS_ASC_KEY == 'true'
         env:
           ASC_KEY_P8_BASE64: ${{ secrets.ASC_KEY_P8_BASE64 }}
@@ -76,21 +83,57 @@ jobs:
           echo "APPLE_API_ISSUER=${{ secrets.ASC_ISSUER_ID }}" >> "$GITHUB_ENV"
 
       - name: Build installer (${{ matrix.os }})
-        run: npx electron-builder ${{ matrix.build_args }} --publish ${{ github.event_name == 'push' && 'always' || 'never' }}
+        # Never publish from electron-builder; the release job publishes the
+        # stapled artifacts so nothing un-stapled can be uploaded mid-build.
+        run: npx electron-builder ${{ matrix.build_args }} --publish never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Notarize + staple the dmg (macOS)
+        # electron-builder notarizes/staples the .app but not the .dmg container.
+        # Submit each dmg to notarytool, staple the ticket, and validate — so a
+        # downloaded dmg passes Gatekeeper offline, not just the app inside.
+        if: matrix.os == 'macos-latest' && env.HAS_ASC_KEY == 'true'
+        run: |
+          shopt -s nullglob
+          for dmg in dist/*.dmg; do
+            echo "==> Notarizing $dmg"
+            xcrun notarytool submit "$dmg" \
+              --key "$APPLE_API_KEY" --key-id "$APPLE_API_KEY_ID" --issuer "$APPLE_API_ISSUER" \
+              --wait
+            xcrun stapler staple "$dmg"
+            xcrun stapler validate "$dmg"
+          done
 
       - name: Clean up secrets (macOS)
         if: always() && matrix.os == 'macos-latest'
         run: rm -f "$RUNNER_TEMP/asc_key.p8"
 
-      - name: Upload build artifacts (manual runs only)
-        if: github.event_name == 'workflow_dispatch'
+      - name: Upload installer artifacts
         uses: actions/upload-artifact@v4
         with:
           name: raccourier-${{ matrix.os }}
           path: |
             dist/*.exe
             dist/*.dmg
-            dist/*.yml
           if-no-files-found: ignore
+
+  release:
+    # Publish the built + stapled installers to the tag's GitHub Release. Runs
+    # only on a version-tag push (never on manual verification runs).
+    needs: build
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Publish to GitHub Release
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
+        with:
+          files: |
+            artifacts/**/*.exe
+            artifacts/**/*.dmg
+          fail_on_unmatched_files: true

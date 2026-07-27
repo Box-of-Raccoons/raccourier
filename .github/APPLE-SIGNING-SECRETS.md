@@ -60,8 +60,15 @@ is imported into the runner keychain. The mac job:
    `p12-password: ${{ secrets.APPLE_CERT_PASSWORD }}`).
 2. Writes the `.p8` from `ASC_KEY_P8_BASE64` and exports `APPLE_API_KEY` (path),
    `APPLE_API_KEY_ID` (`ASC_KEY_ID`), `APPLE_API_ISSUER` (`ASC_ISSUER_ID`).
-3. Runs the build. Each credential step self-skips when its secret is absent, so
-   a repo without the secrets still builds (unsigned, un-notarized).
+3. Runs the build with `--publish never`. electron-builder signs + notarizes +
+   staples the `.app`. Each credential step self-skips when its secret is absent,
+   so a repo without the secrets still builds (unsigned, un-notarized).
+4. Notarizes + staples the `.dmg` container separately (`xcrun notarytool submit
+   --wait` then `xcrun stapler staple`), because electron-builder staples only the
+   app, not the dmg. Without this the installed app is clean but the downloaded
+   dmg is rejected by `spctl` and can prompt Gatekeeper on first open.
+5. A separate `release` job (tag pushes only) publishes the stapled installers, so
+   nothing un-stapled is uploaded mid-build.
 
 See `.github/workflows/release.yml` in this repo for the concrete steps. A Swift
 project (claude-usage-watcher-mac) consumes the same five secrets but signs and
