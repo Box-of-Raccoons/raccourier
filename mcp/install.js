@@ -2,6 +2,7 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
+const { isPackagedExec } = require("../shared/platform");
 
 // Config file per target. Each returns the absolute path to the JSON file
 // whose top-level `mcpServers` map we merge into.
@@ -30,7 +31,7 @@ const TARGETS = {
 // `__dirname` resolves inside resources/app.asar when packaged, so the server.js
 // path is correct in both cases.
 function serverEntry() {
-  const isPackaged = /raccourier\.exe$/i.test(path.basename(process.execPath));
+  const isPackaged = isPackagedExec(process.execPath, process.platform);
   const serverJs = path.resolve(__dirname, "server.js");
   const env = isPackaged ? { ELECTRON_RUN_AS_NODE: "1" } : {};
   return { type: "stdio", command: process.execPath, args: [serverJs], env };

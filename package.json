@@ -33,6 +33,7 @@
       "mcp/**/*",
       "shared/**/*",
       "build/icon.png",
+      "build/trayTemplate.png",
       "package.json"
     ],
     "publish": [
@@ -45,6 +46,12 @@
     ],
     "win": {
       "target": "nsis"
+    },
+    "mac": {
+      "target": ["dmg"],
+      "category": "public.app-category.productivity",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false
     },
     "nsis": {
       "oneClick": false,

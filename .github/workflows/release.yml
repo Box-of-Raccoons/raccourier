@@ -1,7 +1,19 @@
 name: Release
 
-# Builds the Windows installer and publishes it to a GitHub Release.
-# Trigger by pushing a version tag, e.g. `git tag v1.0.0 && git push origin v1.0.0`.
+# Builds the installers and publishes them to a GitHub Release.
+# - Push a version tag (e.g. `git tag v1.0.0 && git push origin v1.0.0`) to build
+#   AND publish to the matching release.
+# - Run manually (workflow_dispatch) to build both platforms and upload the
+#   installers as run artifacts WITHOUT publishing — useful for verifying a branch.
+#
+# macOS signing + notarization run automatically when these repo secrets are set;
+# without them the mac build proceeds unsigned (each credential step self-skips).
+# Required secrets (same ones claude-usage-watcher-mac uses):
+#   APPLE_CERT_P12_BASE64  base64 of the Developer ID Application .p12
+#   APPLE_CERT_PASSWORD    password for that .p12
+#   ASC_KEY_P8_BASE64      base64 of the App Store Connect API key (.p8)
+#   ASC_KEY_ID             the API key's Key ID
+#   ASC_ISSUER_ID          the API key's Issuer ID
 on:
   push:
     tags:
@@ -13,7 +25,20 @@ permissions:
 
 jobs:
   release:
-    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            build_args: "--win"
+          - os: macos-latest
+            build_args: "--mac"
+    runs-on: ${{ matrix.os }}
+    # Surface the two "presence" secrets as env so step `if:` can gate on them
+    # (secrets aren't referenceable in `if:` directly).
+    env:
+      HAS_APPLE_CERT: ${{ secrets.APPLE_CERT_P12_BASE64 != '' }}
+      HAS_ASC_KEY: ${{ secrets.ASC_KEY_P8_BASE64 != '' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -30,7 +55,42 @@ jobs:
       - name: Run tests
         run: npm test
 
-      - name: Build and publish installer
-        run: npx electron-builder --win --publish always
+      - name: Import Developer ID certificate (macOS)
+        if: matrix.os == 'macos-latest' && env.HAS_APPLE_CERT == 'true'
+        uses: apple-actions/import-codesign-certs@63fff01cd422d4b7b855d40ca1e9d34d2de9427d # v3
+        with:
+          p12-file-base64: ${{ secrets.APPLE_CERT_P12_BASE64 }}
+          p12-password: ${{ secrets.APPLE_CERT_PASSWORD }}
+
+      - name: Set up notarization credentials (macOS)
+        # Writes the ASC API key and exports the env vars electron-builder reads to
+        # notarize. Only runs when the secret exists, so absent creds => no notary
+        # env => electron-builder skips notarization quietly (no error).
+        if: matrix.os == 'macos-latest' && env.HAS_ASC_KEY == 'true'
+        env:
+          ASC_KEY_P8_BASE64: ${{ secrets.ASC_KEY_P8_BASE64 }}
+        run: |
+          echo "$ASC_KEY_P8_BASE64" | base64 --decode > "$RUNNER_TEMP/asc_key.p8"
+          echo "APPLE_API_KEY=$RUNNER_TEMP/asc_key.p8" >> "$GITHUB_ENV"
+          echo "APPLE_API_KEY_ID=${{ secrets.ASC_KEY_ID }}" >> "$GITHUB_ENV"
+          echo "APPLE_API_ISSUER=${{ secrets.ASC_ISSUER_ID }}" >> "$GITHUB_ENV"
+
+      - name: Build installer (${{ matrix.os }})
+        run: npx electron-builder ${{ matrix.build_args }} --publish ${{ github.event_name == 'push' && 'always' || 'never' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Clean up secrets (macOS)
+        if: always() && matrix.os == 'macos-latest'
+        run: rm -f "$RUNNER_TEMP/asc_key.p8"
+
+      - name: Upload build artifacts (manual runs only)
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: raccourier-${{ matrix.os }}
+          path: |
+            dist/*.exe
+            dist/*.dmg
+            dist/*.yml
+          if-no-files-found: ignore
